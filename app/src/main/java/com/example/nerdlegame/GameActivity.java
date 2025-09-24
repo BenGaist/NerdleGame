@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class GameActivity extends AppCompatActivity {
 
@@ -35,7 +36,12 @@ public class GameActivity extends AppCompatActivity {
         gameManager = new GameManager();
 
         // ✅ Build dynamic board
-        setupBoard();
+        // ✅ Start game
+        gameManager = new GameManager();
+
+        setupKeyboard();
+        setupBoard();   // <-- this was missing
+
 
         // ✅ Setup keyboard
         setupKeyboard();
@@ -99,13 +105,20 @@ public class GameActivity extends AppCompatActivity {
 
     private void handleEnter() {
         String guess = currentGuess.toString();
+
         if (guess.length() == gameManager.getSolution().length()) {
-            gameManager.addAttempt(guess);
-            checkGuess(guess);
-            currentRow++;
-            currentGuess.setLength(0); // reset for next attempt
+            if (gameManager.isValidEquation(guess)) {
+                gameManager.addAttempt(guess);
+                checkGuess(guess);
+                currentRow++;
+                currentGuess.setLength(0); // reset
+            } else {
+                Toast.makeText(this, "Invalid equation!", Toast.LENGTH_SHORT).show();
+            }
         }
     }
+
+
 
     private void checkGuess(String guess) {
         String solution = gameManager.getSolution();
