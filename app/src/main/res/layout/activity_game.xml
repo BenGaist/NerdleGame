@@ -30,7 +30,8 @@
         android:columnCount="8"
         android:padding="8dp"
         android:alignmentMode="alignMargins"
-        android:useDefaultMargins="true" />
+        android:useDefaultMargins="true"/>
+
 
     <!-- Keyboard -->
     <GridLayout
