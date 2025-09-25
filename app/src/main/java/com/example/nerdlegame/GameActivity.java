@@ -1,14 +1,18 @@
 package com.example.nerdlegame;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 
 public class GameActivity extends AppCompatActivity {
 
@@ -38,13 +42,13 @@ public class GameActivity extends AppCompatActivity {
         // ✅ Build dynamic board
         // ✅ Start game
         gameManager = new GameManager();
-
         setupKeyboard();
         setupBoard();   // <-- this was missing
 
 
         // ✅ Setup keyboard
         setupKeyboard();
+
     }
 
     // ✅ Board setup method
@@ -110,13 +114,12 @@ public class GameActivity extends AppCompatActivity {
             if (gameManager.isValidEquation(guess)) {
                 gameManager.addAttempt(guess);
                 checkGuess(guess);
-                currentRow++;
-                currentGuess.setLength(0); // reset
             } else {
                 Toast.makeText(this, "Invalid equation!", Toast.LENGTH_SHORT).show();
             }
         }
     }
+
 
 
 
@@ -127,14 +130,33 @@ public class GameActivity extends AppCompatActivity {
             char g = guess.charAt(i);
 
             if (g == solution.charAt(i)) {
-                cells[currentRow][i].setBackgroundColor(Color.GREEN); // correct
+                cells[currentRow][i].setBackgroundColor(Color.GREEN);
             } else if (solution.contains(String.valueOf(g))) {
-                cells[currentRow][i].setBackgroundColor(Color.YELLOW); // wrong place
+                cells[currentRow][i].setBackgroundColor(Color.YELLOW);
             } else {
-                cells[currentRow][i].setBackgroundColor(Color.GRAY); // not in solution
+                cells[currentRow][i].setBackgroundColor(Color.GRAY);
             }
         }
+
+        // ✅ Check win first
+        if (guess.equals(solution)) {
+            showResultPopup(true, solution); // WIN
+            return;
+        }
+
+        // ✅ If last row (row 5), it's a loss
+        if (currentRow == 5) {
+            showResultPopup(false, solution); // LOSE
+            return;
+        }
+
+        // Otherwise, go to next row
+        currentRow++;
+        currentGuess.setLength(0);
     }
+
+
+
 
     private void updateBoard() {
         // Clear the current row first
@@ -147,4 +169,53 @@ public class GameActivity extends AppCompatActivity {
             cells[currentRow][i].setText(String.valueOf(currentGuess.charAt(i)));
         }
     }
+    private void showResultPopup(boolean isWin, String equation) {
+        // Inflate the custom layout
+        LayoutInflater inflater = getLayoutInflater();
+        View popupView = inflater.inflate(R.layout.popup_result, null);
+
+        // Create the dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(popupView);
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false); // prevent closing by clicking outside
+
+        // Update UI depending on win or lose
+        TextView title = popupView.findViewById(R.id.popupTitle);
+        TextView eqText = popupView.findViewById(R.id.popupEquation);
+
+        if (isWin) {
+            title.setText("Good job!");
+        } else {
+            title.setText("Game Over");
+        }
+        eqText.setText(equation);
+
+        // Buttons
+        Button btnQuit = popupView.findViewById(R.id.btnQuit);
+        Button btnPlayAgain = popupView.findViewById(R.id.btnPlayAgain);
+        Button btnResults = popupView.findViewById(R.id.btnResults);
+
+        btnQuit.setOnClickListener(v -> {
+            dialog.dismiss();
+            Intent intent = new Intent(this, MainActivity.class); // go back to first screen
+            startActivity(intent);
+            finish();
+        });
+
+        btnPlayAgain.setOnClickListener(v -> {
+            dialog.dismiss();
+            recreate(); // restart current activity (new game)
+        });
+
+        btnResults.setOnClickListener(v -> {
+            dialog.dismiss();
+            // TODO: later connect results screen
+            Toast.makeText(this, "Results not implemented yet", Toast.LENGTH_SHORT).show();
+        });
+
+        // Show dialog
+        dialog.show();
+    }
+
 }
