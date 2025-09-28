@@ -1,54 +1,97 @@
-<!-- res/layout/popup_result.xml -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="@drawable/popup_background"
-    android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="20dp"
+    android:background="@android:color/white">
 
+    <!-- Title -->
     <TextView
         android:id="@+id/popupTitle"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Placeholder"
+        android:text="Good job!"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:layout_gravity="center"
-        android:paddingBottom="10dp"/>
+        android:textColor="@android:color/black"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/timerLayout"
+        app:layout_constraintHorizontal_bias="0" />
 
+    <!-- Timer + Icon in Top Right -->
+    <LinearLayout
+        android:id="@+id/timerLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/popupTimerIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_lock_idle_alarm"
+            android:tint="@android:color/black"
+            android:contentDescription="Timer icon" />
+
+        <TextView
+            android:id="@+id/popupTimerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textSize="16sp"
+            android:layout_marginStart="6dp"
+            android:textColor="@android:color/black" />
+    </LinearLayout>
+
+    <!-- Equation -->
     <TextView
         android:id="@+id/popupEquation"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Equation here"
         android:textSize="18sp"
-        android:layout_gravity="center"
-        android:paddingBottom="20dp"/>
+        android:layout_marginTop="16dp"
+        android:textColor="@android:color/black"
+        app:layout_constraintTop_toBottomOf="@id/popupTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Buttons Row -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/buttonRow"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:gravity="center">
+        app:layout_constraintTop_toBottomOf="@id/popupEquation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <Button
             android:id="@+id/btnQuit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Quit"/>
+            android:text="Quit" />
 
         <Button
             android:id="@+id/btnPlayAgain"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Play Again"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"/>
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp" />
 
         <Button
             android:id="@+id/btnResults"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Results"/>
+            android:text="Results" />
     </LinearLayout>
-</LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

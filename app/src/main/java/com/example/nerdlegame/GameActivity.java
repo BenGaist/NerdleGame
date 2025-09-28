@@ -13,10 +13,14 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
+import android.os.Handler;
 
 public class GameActivity extends AppCompatActivity {
 
-    private TextView tvGreeting;
+    private TextView tvGreeting, tvTimer;
+    private Handler timerHandler = new Handler();
+    private int secondsElapsed = 0;
+    private boolean timerRunning = false;
     private GameManager gameManager;
     private StringBuilder currentGuess = new StringBuilder();
     private int currentRow = 0; // which attempt row the user is on
@@ -29,6 +33,11 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        Button btnWin = findViewById(R.id.winbtn);
+        btnWin.setOnClickListener(v -> {
+            showResultPopup(true, gameManager.getSolution());
+        });
 
         tvGreeting = findViewById(R.id.tvGreeting);
         gridBoard = findViewById(R.id.gridBoard);
@@ -49,7 +58,38 @@ public class GameActivity extends AppCompatActivity {
         // ✅ Setup keyboard
         setupKeyboard();
 
+        tvTimer = findViewById(R.id.tvTimer);
+        startTimer();
+
+
     }
+
+    private Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            secondsElapsed++;
+            updateTimerText();
+            timerHandler.postDelayed(this, 1000);
+        }
+    };
+    private void startTimer() {
+        secondsElapsed = 0;
+        timerRunning = true;
+        timerHandler.postDelayed(timerRunnable, 1000);
+    }
+
+    private void stopTimer() {
+        timerRunning = false;
+        timerHandler.removeCallbacks(timerRunnable);
+    }
+
+    private void updateTimerText() {
+        int minutes = secondsElapsed / 60;
+        int seconds = secondsElapsed % 60;
+        String time = String.format("%d:%02d", minutes, seconds);
+        tvTimer.setText(time);
+    }
+
 
     // ✅ Board setup method
     private void setupBoard() {
@@ -170,51 +210,74 @@ public class GameActivity extends AppCompatActivity {
         }
     }
     private void showResultPopup(boolean isWin, String equation) {
-        // Inflate the custom layout
+        stopTimer(); // ✅ stop counting when game ends
+
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popup_result, null);
 
-        // Create the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setView(popupView);
         AlertDialog dialog = builder.create();
-        dialog.setCancelable(false); // prevent closing by clicking outside
+        dialog.setCancelable(false);
 
-        // Update UI depending on win or lose
+        // UI references
         TextView title = popupView.findViewById(R.id.popupTitle);
         TextView eqText = popupView.findViewById(R.id.popupEquation);
+        TextView popupTimer = popupView.findViewById(R.id.popupTimerText);
 
+        // ✅ Set values depending on win/lose
         if (isWin) {
-            title.setText("Good job!");
-        } else {
-            title.setText("Game Over");
-        }
-        eqText.setText(equation);
+            title.setText("You Win! 🎉");
+            eqText.setText("Equation: " + equation);
 
-        // Buttons
+            String username = getIntent().getStringExtra("USERNAME");
+            String equationText = equation;
+            String timeText = tvTimer.getText().toString();
+            long now = System.currentTimeMillis();
+
+            // calculate totalSeconds if you added that field
+            String[] parts = timeText.split(":");
+            int minutes = Integer.parseInt(parts[0]);
+            int seconds = Integer.parseInt(parts[1]);
+            int totalSeconds = minutes * 60 + seconds;
+
+            Result result = new Result(username, equationText, timeText, now, totalSeconds);
+            AppDatabase db = AppDatabase.getInstance(this);
+            db.resultDao().insert(result);
+        }
+        else {
+            title.setText("Game Over");
+            eqText.setText("Solution: " + equation);
+        }
+
+
+        // ✅ Always show the timer
+        popupTimer.setText(tvTimer.getText().toString());
+
+        // ✅ Button handling
         Button btnQuit = popupView.findViewById(R.id.btnQuit);
         Button btnPlayAgain = popupView.findViewById(R.id.btnPlayAgain);
         Button btnResults = popupView.findViewById(R.id.btnResults);
 
         btnQuit.setOnClickListener(v -> {
             dialog.dismiss();
-            Intent intent = new Intent(this, MainActivity.class); // go back to first screen
+            Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
             finish();
         });
 
         btnPlayAgain.setOnClickListener(v -> {
             dialog.dismiss();
-            recreate(); // restart current activity (new game)
+            recreate(); // restart activity
         });
 
         btnResults.setOnClickListener(v -> {
             dialog.dismiss();
-            // TODO: later connect results screen
-            Toast.makeText(this, "Results not implemented yet", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, ResultsActivity.class);
+            startActivity(intent);
         });
 
-        // Show dialog
+
         dialog.show();
     }
 
