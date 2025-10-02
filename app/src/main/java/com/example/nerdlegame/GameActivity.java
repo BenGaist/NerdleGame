@@ -25,7 +25,7 @@ public class GameActivity extends AppCompatActivity {
     private StringBuilder currentGuess = new StringBuilder();
     private int currentRow = 0; // which attempt row the user is on
     private GridLayout gridBoard;
-
+    private String username;
     // ✅ cells must be class-level
     private TextView[][] cells = new TextView[6][8];
 
@@ -34,15 +34,11 @@ public class GameActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
-        Button btnWin = findViewById(R.id.winbtn);
-        btnWin.setOnClickListener(v -> {
-            showResultPopup(true, gameManager.getSolution());
-        });
 
         tvGreeting = findViewById(R.id.tvGreeting);
         gridBoard = findViewById(R.id.gridBoard);
 
-        String username = getIntent().getStringExtra("USERNAME");
+        username = getIntent().getStringExtra("USERNAME");
         tvGreeting.setText("Hello, " + username + "! Let's play Nerdle!");
 
         // ✅ Start game
@@ -61,7 +57,21 @@ public class GameActivity extends AppCompatActivity {
         tvTimer = findViewById(R.id.tvTimer);
         startTimer();
 
+        Button btnMenu = findViewById(R.id.btnMenu);
+        Button btnResults = findViewById(R.id.btnResults);
 
+        btnMenu.setOnClickListener(v -> {
+            Intent intent = new Intent(GameActivity.this, MainActivity.class);
+            intent.putExtra("USERNAME", username);
+            startActivity(intent);
+            finish();
+        });
+
+        btnResults.setOnClickListener(v -> {
+            Intent intent = new Intent(GameActivity.this, ResultsActivity.class);
+            intent.putExtra("USERNAME", username);
+            startActivity(intent);
+        });
     }
 
     private Runnable timerRunnable = new Runnable() {
@@ -274,6 +284,7 @@ public class GameActivity extends AppCompatActivity {
         btnResults.setOnClickListener(v -> {
             dialog.dismiss();
             Intent intent = new Intent(this, ResultsActivity.class);
+            intent.putExtra("USERNAME", username);
             startActivity(intent);
         });
 
