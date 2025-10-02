@@ -7,4 +7,13 @@
     <item name="android:textSize">18sp</item>
     <item name="android:textStyle">bold</item>
 </style>
+    <style name="Theme.Nerdle" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- remove MaterialButton tinting -->
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
+    </style>
+
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@null</item>
+    </style>
+
 </resources>

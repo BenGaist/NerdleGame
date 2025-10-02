@@ -2,40 +2,111 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/light_gray"
+    android:fitsSystemWindows="true">
 
-    <!-- Title -->
+
+    <!-- Welcome text -->
+
+    <!-- Big Nerdle title -->
+
+    <!-- Username input -->
+
+    <!-- Start Button -->
+
+    <!-- Rules bookmark -->
+
     <TextView
         android:id="@+id/tvWelcome"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Welcome to Nerdle!"
+        android:text="Welcome to"
+        android:textColor="@android:color/black"
         android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:textStyle="normal"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="80dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.151" />
 
-    <!-- Username input -->
+    <TextView
+        android:id="@+id/tvNerdle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nerdle!"
+        android:textColor="@android:color/holo_orange_dark"
+        android:textSize="100sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.534"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvWelcome"
+        app:layout_constraintVertical_bias="0.0" />
+
     <EditText
         android:id="@+id/etUsername"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_margin="40dp"
+        android:background="@drawable/rounded_input"
+        android:gravity="center"
         android:hint="Enter username"
-        app:layout_constraintTop_toBottomOf="@id/tvWelcome"
-        app:layout_constraintStart_toStartOf="parent"
+        android:padding="12dp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="40dp"/>
+        app:layout_constraintHorizontal_bias="0.575"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvNerdle"
+        app:layout_constraintVertical_bias="0.0" />
 
-    <!-- Start Button -->
-    <Button
+    <android.widget.Button
+
         android:id="@+id/btnStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Game"
-        app:layout_constraintTop_toBottomOf="@id/etUsername"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/rounded_button"
+        android:elevation="6dp"
+        android:text="Start!"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp"/>
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/etUsername"
+        app:layout_constraintVertical_bias="0.073"
+        android:backgroundTint="@null"
+        />
+
+    <!-- Settings bookmark -->
+
+
+    <android.widget.Button
+        android:id="@+id/btnRules"
+        android:layout_width="120dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="112dp"
+        android:background="@drawable/bookmark_button"
+        android:backgroundTint="@null"
+        android:text="Rules"
+        android:textColor="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <android.widget.Button
+        android:id="@+id/btnSettings"
+        android:layout_width="120dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="44dp"
+        android:background="@drawable/bookmark_button"
+        android:backgroundTint="@null"
+        android:text="Settings"
+        android:textColor="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
