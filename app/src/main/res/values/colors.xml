@@ -5,5 +5,11 @@
     <color name="light_gray">#F4F4F9</color>
     <color name="primary">#4CAF50</color>
     <color name="secondary">#2196F3</color>
+    <color name="gray">#DBDBDB</color>
+    <color name="nerdle_green">#4CAF50</color>   <!-- softer green -->
+    <color name="nerdle_yellow">#FFC107</color>
+    <color name="nerdle_gray">#9E9E9E</color>    <!-- lighter neutral gray -->
+    <color name="nerdle_dark_gray">#424242</color>
+    <color name="keyboard_default_bg">#DDDDDD</color>
 
 </resources>

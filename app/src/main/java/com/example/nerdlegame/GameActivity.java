@@ -1,10 +1,12 @@
 package com.example.nerdlegame;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,8 +14,8 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
-import android.os.Handler;
+
+import androidx.core.content.ContextCompat;
 
 public class GameActivity extends AppCompatActivity {
 
@@ -21,42 +23,49 @@ public class GameActivity extends AppCompatActivity {
     private Handler timerHandler = new Handler();
     private int secondsElapsed = 0;
     private boolean timerRunning = false;
+
     private GameManager gameManager;
     private StringBuilder currentGuess = new StringBuilder();
-    private int currentRow = 0; // which attempt row the user is on
+    private int currentRow = 0;
+
     private GridLayout gridBoard;
+    private TextView[][] cells = new TextView[6][8]; // ✅ FIXED
+
     private String username;
-    // ✅ cells must be class-level
-    private TextView[][] cells = new TextView[6][8];
+
+    private int green, yellow, gray, darkGray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
+        // Load colors
+        green = ContextCompat.getColor(this, R.color.nerdle_green);
+        yellow = ContextCompat.getColor(this, R.color.nerdle_yellow);
+        gray = ContextCompat.getColor(this, R.color.nerdle_gray);
+        darkGray = ContextCompat.getColor(this, R.color.nerdle_dark_gray);
 
+        // UI
         tvGreeting = findViewById(R.id.tvGreeting);
+        tvTimer = findViewById(R.id.tvTimer);
         gridBoard = findViewById(R.id.gridBoard);
 
+        // Username
         username = getIntent().getStringExtra("USERNAME");
         tvGreeting.setText("Hello, " + username + "! Let's play Nerdle!");
 
-        // ✅ Start game
+        // Start game
         gameManager = new GameManager();
 
-        // ✅ Build dynamic board
-        // ✅ Start game
-        gameManager = new GameManager();
-        setupKeyboard();
-        setupBoard();   // <-- this was missing
-
-
-        // ✅ Setup keyboard
+        // Build board + keyboard
+        setupBoard();
         setupKeyboard();
 
-        tvTimer = findViewById(R.id.tvTimer);
+        // Timer
         startTimer();
 
+        // Menu buttons
         Button btnMenu = findViewById(R.id.btnMenu);
         Button btnResults = findViewById(R.id.btnResults);
 
@@ -74,6 +83,7 @@ public class GameActivity extends AppCompatActivity {
         });
     }
 
+    // ---------------- TIMER ----------------
     private Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -82,6 +92,7 @@ public class GameActivity extends AppCompatActivity {
             timerHandler.postDelayed(this, 1000);
         }
     };
+
     private void startTimer() {
         secondsElapsed = 0;
         timerRunning = true;
@@ -100,11 +111,12 @@ public class GameActivity extends AppCompatActivity {
         tvTimer.setText(time);
     }
 
-
-    // ✅ Board setup method
+    // ---------------- BOARD ----------------
     private void setupBoard() {
-        gridBoard.removeAllViews(); // clear just in case
+        gridBoard.removeAllViews();
         int rows = 6, cols = 8;
+        gridBoard.setRowCount(rows);
+        gridBoard.setColumnCount(cols);
 
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -114,7 +126,6 @@ public class GameActivity extends AppCompatActivity {
                 cell.setTextSize(18);
                 cell.setBackgroundResource(R.drawable.cell_background);
 
-                // Make it expand equally
                 GridLayout.LayoutParams params = new GridLayout.LayoutParams();
                 params.width = 0;
                 params.height = 0;
@@ -130,6 +141,7 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
+    // ---------------- KEYBOARD ----------------
     private void setupKeyboard() {
         GridLayout keyboard = findViewById(R.id.keyboard);
 
@@ -150,7 +162,7 @@ public class GameActivity extends AppCompatActivity {
                 currentGuess.deleteCharAt(currentGuess.length() - 1);
             }
         } else {
-            if (currentGuess.length() < 8) { // ✅ prevent typing more than 8 chars
+            if (currentGuess.length() < 8) {
                 currentGuess.append(key);
             }
         }
@@ -170,9 +182,7 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-
-
-
+    // ---------------- CHECK GUESS ----------------
     private void checkGuess(String guess) {
         String solution = gameManager.getSolution();
 
@@ -180,47 +190,61 @@ public class GameActivity extends AppCompatActivity {
             char g = guess.charAt(i);
 
             if (g == solution.charAt(i)) {
-                cells[currentRow][i].setBackgroundColor(Color.GREEN);
+                cells[currentRow][i].setBackgroundColor(green);
             } else if (solution.contains(String.valueOf(g))) {
-                cells[currentRow][i].setBackgroundColor(Color.YELLOW);
+                cells[currentRow][i].setBackgroundColor(yellow);
             } else {
-                cells[currentRow][i].setBackgroundColor(Color.GRAY);
+                cells[currentRow][i].setBackgroundColor(gray);
+                updateKeyboardKey(g, darkGray);
             }
         }
 
-        // ✅ Check win first
         if (guess.equals(solution)) {
-            showResultPopup(true, solution); // WIN
+            showResultPopup(true, solution);
             return;
         }
 
-        // ✅ If last row (row 5), it's a loss
         if (currentRow == 5) {
-            showResultPopup(false, solution); // LOSE
+            showResultPopup(false, solution);
             return;
         }
 
-        // Otherwise, go to next row
         currentRow++;
         currentGuess.setLength(0);
     }
 
+    private void updateKeyboardKey(char key, int color) {
+        GridLayout keyboard = findViewById(R.id.keyboard);
 
-
+        for (int i = 0; i < keyboard.getChildCount(); i++) {
+            View child = keyboard.getChildAt(i);
+            if (child instanceof Button) {
+                Button btn = (Button) child;
+                if (btn.getText().toString().equals(String.valueOf(key))) {
+                    btn.setBackgroundColor(color);
+                    if (color == darkGray) {
+                        btn.setTextColor(Color.BLACK);
+                    }
+                }
+            }
+        }
+    }
 
     private void updateBoard() {
-        // Clear the current row first
+        // Clear row
         for (int c = 0; c < 8; c++) {
             cells[currentRow][c].setText("");
         }
 
-        // Fill with current guess
+        // Fill guess
         for (int i = 0; i < currentGuess.length(); i++) {
             cells[currentRow][i].setText(String.valueOf(currentGuess.charAt(i)));
         }
     }
+
+    // ---------------- RESULT POPUP ----------------
     private void showResultPopup(boolean isWin, String equation) {
-        stopTimer(); // ✅ stop counting when game ends
+        stopTimer();
 
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popup_result, null);
@@ -230,41 +254,32 @@ public class GameActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.setCancelable(false);
 
-        // UI references
         TextView title = popupView.findViewById(R.id.popupTitle);
         TextView eqText = popupView.findViewById(R.id.popupEquation);
         TextView popupTimer = popupView.findViewById(R.id.popupTimerText);
 
-        // ✅ Set values depending on win/lose
         if (isWin) {
             title.setText("You Win! 🎉");
             eqText.setText("Equation: " + equation);
 
-            String username = getIntent().getStringExtra("USERNAME");
-            String equationText = equation;
             String timeText = tvTimer.getText().toString();
             long now = System.currentTimeMillis();
 
-            // calculate totalSeconds if you added that field
             String[] parts = timeText.split(":");
             int minutes = Integer.parseInt(parts[0]);
             int seconds = Integer.parseInt(parts[1]);
             int totalSeconds = minutes * 60 + seconds;
 
-            Result result = new Result(username, equationText, timeText, now, totalSeconds);
+            Result result = new Result(username, equation, timeText, now, totalSeconds);
             AppDatabase db = AppDatabase.getInstance(this);
             db.resultDao().insert(result);
-        }
-        else {
+        } else {
             title.setText("Game Over");
             eqText.setText("Solution: " + equation);
         }
 
-
-        // ✅ Always show the timer
         popupTimer.setText(tvTimer.getText().toString());
 
-        // ✅ Button handling
         Button btnQuit = popupView.findViewById(R.id.btnQuit);
         Button btnPlayAgain = popupView.findViewById(R.id.btnPlayAgain);
         Button btnResults = popupView.findViewById(R.id.btnResults);
@@ -278,7 +293,7 @@ public class GameActivity extends AppCompatActivity {
 
         btnPlayAgain.setOnClickListener(v -> {
             dialog.dismiss();
-            recreate(); // restart activity
+            recreate();
         });
 
         btnResults.setOnClickListener(v -> {
@@ -288,8 +303,6 @@ public class GameActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-
         dialog.show();
     }
-
 }
