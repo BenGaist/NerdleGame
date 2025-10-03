@@ -17,6 +17,8 @@ import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 
+import java.util.concurrent.Executors;
+
 public class GameActivity extends AppCompatActivity {
 
     private TextView tvGreeting, tvTimer;
@@ -191,8 +193,12 @@ public class GameActivity extends AppCompatActivity {
 
             if (g == solution.charAt(i)) {
                 cells[currentRow][i].setBackgroundColor(green);
+                updateKeyboardKey(g, green);
+
             } else if (solution.contains(String.valueOf(g))) {
                 cells[currentRow][i].setBackgroundColor(yellow);
+                updateKeyboardKey(g, yellow);
+
             } else {
                 cells[currentRow][i].setBackgroundColor(gray);
                 updateKeyboardKey(g, darkGray);
@@ -200,7 +206,7 @@ public class GameActivity extends AppCompatActivity {
         }
 
         if (guess.equals(solution)) {
-            showResultPopup(true, solution);
+            playWinAnimation(solution); // ✅ play animation first
             return;
         }
 
@@ -271,8 +277,10 @@ public class GameActivity extends AppCompatActivity {
             int totalSeconds = minutes * 60 + seconds;
 
             Result result = new Result(username, equation, timeText, now, totalSeconds);
-            AppDatabase db = AppDatabase.getInstance(this);
-            db.resultDao().insert(result);
+            Executors.newSingleThreadExecutor().execute(() -> {
+                AppDatabase db = AppDatabase.getInstance(GameActivity.this);
+                db.resultDao().insert(result);
+            });
         } else {
             title.setText("Game Over");
             eqText.setText("Solution: " + equation);
@@ -282,13 +290,12 @@ public class GameActivity extends AppCompatActivity {
 
         Button btnQuit = popupView.findViewById(R.id.btnQuit);
         Button btnPlayAgain = popupView.findViewById(R.id.btnPlayAgain);
-        Button btnResults = popupView.findViewById(R.id.btnResults);
 
         btnQuit.setOnClickListener(v -> {
             dialog.dismiss();
-            Intent intent = new Intent(this, MainActivity.class);
+            Intent intent = new Intent(this, ResultsActivity.class);
+            intent.putExtra("USERNAME", username);
             startActivity(intent);
-            finish();
         });
 
         btnPlayAgain.setOnClickListener(v -> {
@@ -296,13 +303,58 @@ public class GameActivity extends AppCompatActivity {
             recreate();
         });
 
-        btnResults.setOnClickListener(v -> {
-            dialog.dismiss();
-            Intent intent = new Intent(this, ResultsActivity.class);
-            intent.putExtra("USERNAME", username);
-            startActivity(intent);
-        });
-
         dialog.show();
     }
+
+    private void playWinAnimation(String solution) {
+        stopTimer(); // ✅ stop the timer immediately when animation starts
+
+        int duration = 3000; // total animation time (3 sec)
+        int interval = 300;  // each wiggle cycle
+        long startTime = System.currentTimeMillis();
+
+        Handler animHandler = new Handler();
+
+        Runnable animator = new Runnable() {
+            boolean right = true; // toggle direction
+
+            @Override
+            public void run() {
+                long elapsed = System.currentTimeMillis() - startTime;
+
+                // Stop after 3 sec
+                if (elapsed >= duration) {
+                    // reset all tiles to normal rotation
+                    for (int r = 0; r < 6; r++) {
+                        for (int c = 0; c < 8; c++) {
+                            if (cells[r][c] != null) {
+                                cells[r][c].setRotation(0f);
+                            }
+                        }
+                    }
+                    // ✅ finally show popup
+                    showResultPopup(true, solution);
+                    return;
+                }
+
+                // Animate all filled cells
+                for (int r = 0; r < 6; r++) {
+                    for (int c = 0; c < 8; c++) {
+                        if (cells[r][c] != null && !cells[r][c].getText().toString().isEmpty()) {
+                            cells[r][c].animate()
+                                    .rotation(right ? 15f : -15f) // tilt right/left
+                                    .setDuration(interval / 2)
+                                    .start();
+                        }
+                    }
+                }
+
+                right = !right; // flip direction
+                animHandler.postDelayed(this, interval);
+            }
+        };
+
+        animHandler.post(animator);
+    }
+
 }

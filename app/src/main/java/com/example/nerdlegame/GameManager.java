@@ -74,7 +74,7 @@ public class GameManager {
             }
         }
 
-        return equation;
+         return equation;
     }
     public boolean isValidEquation(String guess) {
         // Must be exactly 8 chars
