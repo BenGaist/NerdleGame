@@ -23,6 +23,11 @@
         </activity>
 
         <service android:name=".MusicService" />
-        <receiver android:name=".ReminderReceiver" />
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="true" />
+
+
+
     </application>
 </manifest>

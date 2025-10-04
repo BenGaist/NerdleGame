@@ -85,6 +85,15 @@ public class MainActivity extends AppCompatActivity {
         btnSettings.setOnClickListener(v -> {
             showSettingsDialog();
         });
+
+        btnRules.setOnClickListener(v -> {
+            stopService(new Intent(this, MusicService.class));
+
+            RulesDialogFragment dialog = new RulesDialogFragment();
+            dialog.show(getSupportFragmentManager(), "RulesDialog");
+        });
+
+
     }
 
     private void showSettingsDialog() {
@@ -152,6 +161,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void showRulesDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("How to Play Nerdle");
+
+        // Put the rules text into a scrollable TextView
+        final android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
+        final android.widget.TextView textView = new android.widget.TextView(this);
+
+        textView.setText(getString(R.string.rules_text));
+        textView.setPadding(40, 30, 40, 30);
+        textView.setTextSize(16f);
+
+        scrollView.addView(textView);
+        builder.setView(scrollView);
+
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
 
 
 

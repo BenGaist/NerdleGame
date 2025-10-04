@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">NerdleGame</string>
+    <string name="rules_text">
+About Nerdle\n
+Nerdle is a daily math puzzle inspired by logic games and a love for numbers. Each day you’ll face a hidden equation to solve in six tries or less.\n\n
+
+How to Play\n
+1. Each guess must be a valid calculation.\n
+2. Use numbers (0–9) and the symbols + - * / =.\n
+3. Your guess must include exactly one “=”, with only a number on the right side (e.g., 3+4=7).\n
+4. Standard math order applies (* and / before + and -).\n
+5. Commutative answers are accepted (e.g., 10+20=30 and 20+10=30 both work).\n\n
+
+Feedback Hints\n
+• Green = correct symbol in the correct spot.\n
+• Purple = correct symbol but in the wrong spot.\n
+• Black = not in the solution.\n\n
+
+Tips\n
+• First guesses should use many different numbers and operators to gather information.\n
+• Reposition purple tiles to test new spots.\n
+• Try to place the "=" early to reduce possibilities.\n
+• Use logic and deduction to narrow the solution quickly.\n\n
+
+Goal\n
+Turn all tiles green and solve the Nerdle! Come back tomorrow for a new challenge.
+</string>
+
+
 </resources>
