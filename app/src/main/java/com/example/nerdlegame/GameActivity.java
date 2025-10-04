@@ -42,6 +42,8 @@ public class GameActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
+
+
         // Load colors
         green = ContextCompat.getColor(this, R.color.nerdle_green);
         yellow = ContextCompat.getColor(this, R.color.nerdle_yellow);
@@ -83,6 +85,8 @@ public class GameActivity extends AppCompatActivity {
             intent.putExtra("USERNAME", username);
             startActivity(intent);
         });
+
+
     }
 
     // ---------------- TIMER ----------------
@@ -291,7 +295,26 @@ public class GameActivity extends AppCompatActivity {
         Button btnQuit = popupView.findViewById(R.id.btnQuit);
         Button btnPlayAgain = popupView.findViewById(R.id.btnPlayAgain);
 
+        // Thread for auto-dismiss
+        Thread autoDismissThread = new Thread(() -> {
+            try {
+                Thread.sleep(10_000); // wait 10 seconds
+                if (dialog.isShowing()) {
+                    runOnUiThread(() -> {
+                        dialog.dismiss();
+                        Intent intent = new Intent(this, ResultsActivity.class);
+                        intent.putExtra("USERNAME", username);
+                        startActivity(intent);
+                    });
+                }
+            } catch (InterruptedException e) {
+                // Thread was interrupted (user clicked button), do nothing
+            }
+        });
+        autoDismissThread.start();
+
         btnQuit.setOnClickListener(v -> {
+            autoDismissThread.interrupt(); // stop the thread
             dialog.dismiss();
             Intent intent = new Intent(this, ResultsActivity.class);
             intent.putExtra("USERNAME", username);
@@ -299,12 +322,14 @@ public class GameActivity extends AppCompatActivity {
         });
 
         btnPlayAgain.setOnClickListener(v -> {
+            autoDismissThread.interrupt(); // stop the thread
             dialog.dismiss();
             recreate();
         });
 
         dialog.show();
     }
+
 
     private void playWinAnimation(String solution) {
         stopTimer(); // ✅ stop the timer immediately when animation starts
