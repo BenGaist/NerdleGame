@@ -26,7 +26,7 @@ public class GameActivity extends AppCompatActivity {
     private int secondsElapsed = 0;
     private boolean timerRunning = false;
 
-    private GameManager gameManager;
+
     private StringBuilder currentGuess = new StringBuilder();
     private int currentRow = 0;
 
@@ -36,40 +36,74 @@ public class GameActivity extends AppCompatActivity {
     private String username;
 
     private int green, yellow, gray, darkGray;
+    private GameManager gameManager; // ✅ add this line
+    private boolean isEquationReady = false;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
-
-
-        // Load colors
+        // --- Load colors ---
         green = ContextCompat.getColor(this, R.color.nerdle_green);
         yellow = ContextCompat.getColor(this, R.color.nerdle_yellow);
         gray = ContextCompat.getColor(this, R.color.nerdle_gray);
         darkGray = ContextCompat.getColor(this, R.color.nerdle_dark_gray);
 
-        // UI
+        // --- Find views ---
         tvGreeting = findViewById(R.id.tvGreeting);
         tvTimer = findViewById(R.id.tvTimer);
         gridBoard = findViewById(R.id.gridBoard);
 
-        // Username
+        // --- Get username ---
         username = getIntent().getStringExtra("USERNAME");
         tvGreeting.setText("Hello, " + username + "! Let's play Nerdle!");
 
-        // Start game
+        // --- Create GameManager ---
         gameManager = new GameManager();
 
-        // Build board + keyboard
+        // --- Setup board first (but no keyboard yet) ---
         setupBoard();
-        setupKeyboard();
 
-        // Timer
-        startTimer();
+        // --- Disable keyboard until equation is ready ---
+        setKeyboardEnabled(false);
+        Toast.makeText(this, "Generating puzzle...", Toast.LENGTH_SHORT).show();
 
-        // Menu buttons
+        // --- Generate equation using Gemini ---
+        gameManager.generateEquationGemini(new GameManager.EquationCallback() {
+            @Override
+            public void onEquationGenerated(String equation) {
+                runOnUiThread(() -> {
+                    isEquationReady = true;
+                    Toast.makeText(GameActivity.this, "Equation ready!", Toast.LENGTH_SHORT).show();
+
+                    // Now we can safely start the game
+                    setupKeyboard();
+                    setKeyboardEnabled(true);
+                    startTimer();
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(GameActivity.this,
+                            "Failed to load equation: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+
+                    // Fallback equation if Gemini fails
+                    gameManager.setSolution("12+34=46");
+                    isEquationReady = true;
+                    setupKeyboard();
+                    setKeyboardEnabled(true);
+                    startTimer();
+                });
+            }
+        });
+
+        // --- Menu buttons ---
         Button btnMenu = findViewById(R.id.btnMenu);
         Button btnResults = findViewById(R.id.btnResults);
 
@@ -85,9 +119,8 @@ public class GameActivity extends AppCompatActivity {
             intent.putExtra("USERNAME", username);
             startActivity(intent);
         });
-
-
     }
+
 
     // ---------------- TIMER ----------------
     private Runnable timerRunnable = new Runnable() {
@@ -161,6 +194,11 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void onKeyPress(String key) {
+        if (!isEquationReady) {
+            Toast.makeText(this, "Please wait, generating puzzle...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (key.equals("Enter")) {
             handleEnter();
         } else if (key.equals("⌫")) {
@@ -176,9 +214,14 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void handleEnter() {
+        if (gameManager.getSolution() == null) {
+            Toast.makeText(this, "Please wait, generating puzzle...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String guess = currentGuess.toString();
 
-        if (guess.length() == gameManager.getSolution().length()) {
+        if (guess.length() == 8) {
             if (gameManager.isValidEquation(guess)) {
                 gameManager.addAttempt(guess);
                 checkGuess(guess);
@@ -187,6 +230,7 @@ public class GameActivity extends AppCompatActivity {
             }
         }
     }
+
 
     // ---------------- CHECK GUESS ----------------
     private void checkGuess(String guess) {
@@ -381,5 +425,16 @@ public class GameActivity extends AppCompatActivity {
 
         animHandler.post(animator);
     }
+
+    private void setKeyboardEnabled(boolean enabled) {
+        GridLayout keyboard = findViewById(R.id.keyboard);
+        for (int i = 0; i < keyboard.getChildCount(); i++) {
+            View child = keyboard.getChildAt(i);
+            if (child instanceof Button) {
+                child.setEnabled(enabled);
+            }
+        }
+    }
+
 
 }
