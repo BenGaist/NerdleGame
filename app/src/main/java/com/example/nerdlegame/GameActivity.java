@@ -21,8 +21,9 @@ import java.util.concurrent.Executors;
 
 public class GameActivity extends AppCompatActivity {
 
-    private TextView tvGreeting, tvTimer, tvStart;
+    private TextView tvGreeting, tvTimer, tvStart, tvTopToast;
     private View loadingContainer;
+    private Runnable hideToastRunnable;
     private Handler timerHandler = new Handler();
     private int secondsElapsed = 0;
     private boolean timerRunning = false;
@@ -59,6 +60,7 @@ public class GameActivity extends AppCompatActivity {
         gridBoard = findViewById(R.id.gridBoard);
         loadingContainer = findViewById(R.id.loadingContainer);
         tvStart = findViewById(R.id.tvStart);
+        tvTopToast = findViewById(R.id.tvTopToast);
 
         // Start state
         loadingContainer.setVisibility(View.VISIBLE);
@@ -75,8 +77,9 @@ public class GameActivity extends AppCompatActivity {
         setupBoard();
 
         // --- Disable keyboard until equation is ready ---
+        // --- Disable keyboard until equation is ready ---
         setKeyboardEnabled(false);
-        Toast.makeText(this, "Generating puzzle...", Toast.LENGTH_SHORT).show();
+        showTopToast("Generating puzzle...");
 
         // --- Generate equation using Gemini ---
         // --- Generate equation using Gemini ---
@@ -87,7 +90,7 @@ public class GameActivity extends AppCompatActivity {
                     isEquationReady = true;
                     
                     // Show detailed status to user
-                    Toast.makeText(GameActivity.this, message, Toast.LENGTH_LONG).show();
+                    showTopToast(message);
 
                     // Hide loader, show Start
                     loadingContainer.setVisibility(View.GONE);
@@ -198,7 +201,7 @@ public class GameActivity extends AppCompatActivity {
 
     private void onKeyPress(String key) {
         if (!isEquationReady) {
-            Toast.makeText(this, "Please wait, generating puzzle...", Toast.LENGTH_SHORT).show();
+            showTopToast("Please wait, generating puzzle...");
             return;
         }
 
@@ -218,7 +221,7 @@ public class GameActivity extends AppCompatActivity {
 
     private void handleEnter() {
         if (gameManager.getSolution() == null) {
-            Toast.makeText(this, "Please wait, generating puzzle...", Toast.LENGTH_SHORT).show();
+            showTopToast("Please wait, generating puzzle...");
             return;
         }
 
@@ -229,7 +232,7 @@ public class GameActivity extends AppCompatActivity {
                 gameManager.addAttempt(guess);
                 checkGuess(guess);
             } else {
-                Toast.makeText(this, "Invalid equation!", Toast.LENGTH_SHORT).show();
+                showTopToast("Invalid equation!");
             }
         }
     }
@@ -513,5 +516,18 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-
+    private void showTopToast(String message) {
+        if (tvTopToast == null) return;
+        
+        tvTopToast.setText(message);
+        tvTopToast.setVisibility(View.VISIBLE);
+        
+        // Remove any pending hide calls
+        if (hideToastRunnable != null) {
+            tvTopToast.removeCallbacks(hideToastRunnable);
+        }
+        
+        hideToastRunnable = () -> tvTopToast.setVisibility(View.GONE);
+        tvTopToast.postDelayed(hideToastRunnable, 3500); // Show for 3.5 seconds
+    }
 }
