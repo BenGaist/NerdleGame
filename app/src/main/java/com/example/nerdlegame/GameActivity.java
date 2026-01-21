@@ -235,22 +235,63 @@ public class GameActivity extends AppCompatActivity {
     // ---------------- CHECK GUESS ----------------
     private void checkGuess(String guess) {
         String solution = gameManager.getSolution();
+        int[] solutionCharCounts = new int[256]; // Frequency map for solution chars
+        int[] guessColors = new int[8]; // Store colors locally first: 0=Gray, 1=Green, 2=Yellow
 
-        for (int i = 0; i < guess.length(); i++) {
+        // Initialize colors to Gray.
+        // 0 -> Gray
+        // 1 -> Green
+        // 2 -> Yellow
+
+        // Pass 1: Identify Greens and count available solution characters
+        // First, count all chars in solution
+        for (char c : solution.toCharArray()) {
+            solutionCharCounts[c]++;
+        }
+
+        // Now find Greens and decrement counts from solution for those matches
+        for (int i = 0; i < 8; i++) {
             char g = guess.charAt(i);
+            char s = solution.charAt(i);
 
-            if (g == solution.charAt(i)) {
-                cells[currentRow][i].setBackgroundColor(green);
-                updateKeyboardKey(g, green);
-
-            } else if (solution.contains(String.valueOf(g))) {
-                cells[currentRow][i].setBackgroundColor(yellow);
-                updateKeyboardKey(g, yellow);
-
-            } else {
-                cells[currentRow][i].setBackgroundColor(gray);
-                updateKeyboardKey(g, darkGray);
+            if (g == s) {
+                guessColors[i] = 1; // Green
+                solutionCharCounts[g]--;
             }
+        }
+
+        // Pass 2: Identify Yellows
+        for (int i = 0; i < 8; i++) {
+            if (guessColors[i] == 1) continue; // Skip already green
+
+            char g = guess.charAt(i);
+            if (solutionCharCounts[g] > 0) {
+                guessColors[i] = 2; // Yellow
+                solutionCharCounts[g]--;
+            } else {
+                guessColors[i] = 0; // Gray
+            }
+        }
+
+        // Apply colors to UI
+        for (int i = 0; i < 8; i++) {
+            char g = guess.charAt(i);
+            int tileColor;
+            int keyColor;
+
+            if (guessColors[i] == 1) {
+                tileColor = green;
+                keyColor = green;
+            } else if (guessColors[i] == 2) {
+                tileColor = yellow;
+                keyColor = yellow;
+            } else {
+                tileColor = gray;
+                keyColor = darkGray;
+            }
+
+            cells[currentRow][i].setBackgroundColor(tileColor);
+            updateKeyboardKey(g, keyColor);
         }
 
         if (guess.equals(solution)) {
@@ -268,6 +309,16 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void updateKeyboardKey(char key, int color) {
+        // Determine priority of incoming color
+        // 3: Green
+        // 2: Yellow
+        // 1: DarkGray/Gray (Miss)
+        // 0: None
+        int priority = 0;
+        if (color == green) priority = 3;
+        else if (color == yellow) priority = 2;
+        else if (color == darkGray) priority = 1;
+
         GridLayout keyboard = findViewById(R.id.keyboard);
 
         for (int i = 0; i < keyboard.getChildCount(); i++) {
@@ -275,9 +326,32 @@ public class GameActivity extends AppCompatActivity {
             if (child instanceof Button) {
                 Button btn = (Button) child;
                 if (btn.getText().toString().equals(String.valueOf(key))) {
-                    btn.setBackgroundColor(color);
-                    if (color == darkGray) {
-                        btn.setTextColor(Color.BLACK);
+                    
+                    int currentPriority = 0;
+                    if (btn.getTag() != null && btn.getTag() instanceof Integer) {
+                        currentPriority = (Integer) btn.getTag();
+                    }
+
+                    // Only update if new priority is higher (e.g. don't overwrite Green with Yellow)
+                    if (priority > currentPriority) {
+                        btn.setBackgroundColor(color);
+                        btn.setTag(priority);
+                        
+                        if (color == darkGray) {
+                            btn.setTextColor(Color.BLACK);
+                        } else {
+                             // Reset text color to default (usually white) for Green/Yellow if needed, 
+                             // but since we only upgrade, we might not need to revert from Black.
+                             // However, if we went from Gray -> Yellow (logic forbids, but say restart), 
+                             // we should be careful. But here we just persist forward.
+                             // Let's assume default text color handles fine for G/Y.
+                             // Actually, if a key was Gray (Black text) and becomes Yellow (Upgrade impossible in standard Nerdle but let's be safe),
+                             // we should probably reset text color. 
+                             // But wait, if logic is correct, a char can't go from Gray(NotInWord) to Yellow(InWord).
+                             // So Gray is terminal unless we restart game. 
+                             // Restarting game recreates Activity or resets board? 
+                             // `recreate()` is called in `showResultPopup`. This reloads everything so state is cleared.
+                        }
                     }
                 }
             }
