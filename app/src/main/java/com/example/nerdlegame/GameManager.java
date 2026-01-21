@@ -41,7 +41,11 @@ public class GameManager {
 
     // ✅ Generate equation with Gemini and store it in 'solution'
     public void generateEquationGemini(final EquationCallback callback) {
-        final String model = "gemini-1.5-flash"; // Fixed model name
+        // Try user-specified model first, if fails, try pro
+        generateEquationWithModel("gemini-2.5-flash", callback, true);
+    }
+
+    private void generateEquationWithModel(String model, final EquationCallback callback, boolean retryOnFailure) {
         final String nerdlePrompt =
                 "Generate ONE random valid math equation exactly 8 characters long, " +
                         "like in the game Nerdle. " +
@@ -50,50 +54,52 @@ public class GameManager {
                         "Example format: 91-34=67 or 56/8+1=8 or 12+34=46. " +
                         "Return only the equation, with no extra words.";
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                long t0 = System.nanoTime();
-                try {
-                    GenerateContentResponse response = client.models.generateContent(
-                            model,
-                            nerdlePrompt,
-                            null
-                    );
+        new Thread(() -> {
+            long t0 = System.nanoTime();
+            try {
+                GenerateContentResponse response = client.models.generateContent(
+                        model,
+                        nerdlePrompt,
+                        null
+                );
 
-                    String text = response.text().trim();
-                    long durMs = (System.nanoTime() - t0) / 1_000_000;
-                    Log.d(TAG, "Gemini equation: " + text + " (" + durMs + " ms)");
+                String text = response.text().trim();
+                long durMs = (System.nanoTime() - t0) / 1_000_000;
+                Log.d(TAG, "Gemini equation (" + model + "): " + text + " (" + durMs + " ms)");
 
-                    // Validate generated equation
-                    if (!isValidSolution(text)) {
-                        Log.w(TAG, "Gemini generated invalid equation: " + text + ". Using fallback.");
-                        final String fallback = getRandomFallback();
-                        solution = fallback;
-                        
-                        new Handler(Looper.getMainLooper()).post(() -> 
-                            callback.onEquationGenerated(fallback, "Validation used a different equation (API returned invalid: " + text + ")", false)
-                        );
-                    } else {
-                        final String finalSolution = text;
-                        solution = finalSolution;
-
-                        // Return to main thread
-                        new Handler(Looper.getMainLooper()).post(() -> 
-                            callback.onEquationGenerated(finalSolution, "Equation generated correctly!", true)
-                        );
-                    }
-
-                } catch (final Exception e) {
-                    long durMs = (System.nanoTime() - t0) / 1_000_000;
-                    Log.e(TAG, "Request failed after " + durMs + " ms: " + e.getMessage(), e);
-
-                    // Use fallback on error
+                // Validate generated equation
+                if (!isValidSolution(text)) {
+                    Log.w(TAG, "Gemini generated invalid equation: " + text + ". Using fallback.");
                     final String fallback = getRandomFallback();
                     solution = fallback;
 
-                    new Handler(Looper.getMainLooper()).post(() -> 
-                        callback.onEquationGenerated(fallback, "Equation did not generate (API Error: " + e.getMessage() + ")", false)
+                    new Handler(Looper.getMainLooper()).post(() ->
+                            callback.onEquationGenerated(fallback, "Validation used a different equation (API returned invalid: " + text + ")", false)
+                    );
+                } else {
+                    final String finalSolution = text;
+                    solution = finalSolution;
+
+                    // Return to main thread
+                    new Handler(Looper.getMainLooper()).post(() ->
+                            callback.onEquationGenerated(finalSolution, "Equation generated correctly!", true)
+                    );
+                }
+
+            } catch (final Exception e) {
+                long durMs = (System.nanoTime() - t0) / 1_000_000;
+                Log.e(TAG, "Request failed (" + model + ") after " + durMs + " ms: " + e.getMessage(), e);
+
+                if (retryOnFailure) {
+                    Log.i(TAG, "Retrying with gemini-1.5-pro...");
+                    generateEquationWithModel("gemini-1.5-pro", callback, false);
+                } else {
+                    // Final failure
+                    final String fallback = getRandomFallback();
+                    solution = fallback;
+
+                    new Handler(Looper.getMainLooper()).post(() ->
+                            callback.onEquationGenerated(fallback, "Equation did not generate (API Error: " + e.getMessage() + ")", false)
                     );
                 }
             }
