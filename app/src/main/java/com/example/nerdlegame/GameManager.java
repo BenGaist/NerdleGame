@@ -22,9 +22,8 @@ public class GameManager {
 
     // ✅ Callback interface for async Gemini result
     public interface EquationCallback {
-        void onEquationGenerated(String equation);
-
-        void onError(Exception e);
+        void onEquationGenerated(String equation, String message, boolean isSuccess);
+        // onError is removed as we handle everything through onEquationGenerated with status
     }
 
     // ✅ Constructor
@@ -69,19 +68,21 @@ public class GameManager {
                     // Validate generated equation
                     if (!isValidSolution(text)) {
                         Log.w(TAG, "Gemini generated invalid equation: " + text + ". Using fallback.");
-                        text = getRandomFallback();
+                        final String fallback = getRandomFallback();
+                        solution = fallback;
+                        
+                        new Handler(Looper.getMainLooper()).post(() -> 
+                            callback.onEquationGenerated(fallback, "Validation used a different equation (API returned invalid: " + text + ")", false)
+                        );
+                    } else {
+                        final String finalSolution = text;
+                        solution = finalSolution;
+
+                        // Return to main thread
+                        new Handler(Looper.getMainLooper()).post(() -> 
+                            callback.onEquationGenerated(finalSolution, "Equation generated correctly!", true)
+                        );
                     }
-
-                    final String finalSolution = text;
-                    solution = finalSolution;
-
-                    // Return to main thread
-                    new Handler(Looper.getMainLooper()).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            callback.onEquationGenerated(finalSolution);
-                        }
-                    });
 
                 } catch (final Exception e) {
                     long durMs = (System.nanoTime() - t0) / 1_000_000;
@@ -91,15 +92,9 @@ public class GameManager {
                     final String fallback = getRandomFallback();
                     solution = fallback;
 
-                    new Handler(Looper.getMainLooper()).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            // We can still call onEquationGenerated with a fallback instead of error
-                            // to keep the game going seamlessly, or pass error if UI wants to know.
-                            // Given user request "use a fallback equation", we provide a valid equation.
-                            callback.onEquationGenerated(fallback);
-                        }
-                    });
+                    new Handler(Looper.getMainLooper()).post(() -> 
+                        callback.onEquationGenerated(fallback, "Equation did not generate (API Error: " + e.getMessage() + ")", false)
+                    );
                 }
             }
         }).start();

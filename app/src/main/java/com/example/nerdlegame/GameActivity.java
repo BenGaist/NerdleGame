@@ -21,7 +21,8 @@ import java.util.concurrent.Executors;
 
 public class GameActivity extends AppCompatActivity {
 
-    private TextView tvGreeting, tvTimer;
+    private TextView tvGreeting, tvTimer, tvStart;
+    private View loadingContainer;
     private Handler timerHandler = new Handler();
     private int secondsElapsed = 0;
     private boolean timerRunning = false;
@@ -56,6 +57,12 @@ public class GameActivity extends AppCompatActivity {
         tvGreeting = findViewById(R.id.tvGreeting);
         tvTimer = findViewById(R.id.tvTimer);
         gridBoard = findViewById(R.id.gridBoard);
+        loadingContainer = findViewById(R.id.loadingContainer);
+        tvStart = findViewById(R.id.tvStart);
+
+        // Start state
+        loadingContainer.setVisibility(View.VISIBLE);
+        tvStart.setVisibility(View.GONE);
 
         // --- Get username ---
         username = getIntent().getStringExtra("USERNAME");
@@ -72,30 +79,26 @@ public class GameActivity extends AppCompatActivity {
         Toast.makeText(this, "Generating puzzle...", Toast.LENGTH_SHORT).show();
 
         // --- Generate equation using Gemini ---
+        // --- Generate equation using Gemini ---
         gameManager.generateEquationGemini(new GameManager.EquationCallback() {
             @Override
-            public void onEquationGenerated(String equation) {
+            public void onEquationGenerated(String equation, String message, boolean isSuccess) {
                 runOnUiThread(() -> {
                     isEquationReady = true;
-                    Toast.makeText(GameActivity.this, "Equation ready!", Toast.LENGTH_SHORT).show();
+                    
+                    // Show detailed status to user
+                    Toast.makeText(GameActivity.this, message, Toast.LENGTH_LONG).show();
+
+                    // Hide loader, show Start
+                    loadingContainer.setVisibility(View.GONE);
+                    tvStart.setVisibility(View.VISIBLE);
+
+                    // Hide Start after 5 seconds
+                    new Handler().postDelayed(() -> {
+                        tvStart.setVisibility(View.GONE);
+                    }, 5000);
 
                     // Now we can safely start the game
-                    setupKeyboard();
-                    setKeyboardEnabled(true);
-                    startTimer();
-                });
-            }
-
-            @Override
-            public void onError(Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(GameActivity.this,
-                            "Failed to load equation: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-
-                    // Fallback equation if Gemini fails
-                    gameManager.setSolution("12+34=46");
-                    isEquationReady = true;
                     setupKeyboard();
                     setKeyboardEnabled(true);
                     startTimer();
