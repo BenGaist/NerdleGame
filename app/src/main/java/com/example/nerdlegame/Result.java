@@ -12,7 +12,7 @@ public class Result {
     public String equation;
     public String time;   // formatted "m:ss"
     public long date;     // timestamp
-    public int duration;  // total seconds ✅ NEW
+    public int duration;  // total seconds  NEW
 
     public Result(String username, String equation, String time, long date, int duration) {
         this.username = username;

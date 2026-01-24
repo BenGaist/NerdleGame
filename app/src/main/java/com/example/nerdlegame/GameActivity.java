@@ -33,12 +33,12 @@ public class GameActivity extends AppCompatActivity {
     private int currentRow = 0;
 
     private GridLayout gridBoard;
-    private TextView[][] cells = new TextView[6][8]; // ✅ FIXED
+    private TextView[][] cells = new TextView[6][8]; //  FIXED
 
     private String username;
 
     private int green, yellow, gray, darkGray;
-    private GameManager gameManager; // ✅ add this line
+    private GameManager gameManager; //  add this line
     private boolean isEquationReady = false;
 
 
@@ -301,7 +301,7 @@ public class GameActivity extends AppCompatActivity {
         }
 
         if (guess.equals(solution)) {
-            playWinAnimation(solution); // ✅ play animation first
+            playWinAnimation(solution); //  play animation first
             return;
         }
 
@@ -456,7 +456,7 @@ public class GameActivity extends AppCompatActivity {
 
 
     private void playWinAnimation(String solution) {
-        stopTimer(); // ✅ stop the timer immediately when animation starts
+        stopTimer(); //  stop the timer immediately when animation starts
 
         int duration = 3000; // total animation time (3 sec)
         int interval = 300;  // each wiggle cycle
@@ -481,7 +481,7 @@ public class GameActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    // ✅ finally show popup
+                    //  finally show popup
                     showResultPopup(true, solution);
                     return;
                 }

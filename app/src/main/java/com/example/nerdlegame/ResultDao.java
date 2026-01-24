@@ -11,7 +11,7 @@ public interface ResultDao {
     @Insert
     void insert(Result result);
 
-    @Query("SELECT * FROM results ORDER BY duration ASC") // ✅ numeric sort
+    @Query("SELECT * FROM results ORDER BY duration ASC") //  numeric sort
     List<Result> getAllResults();
 }
 

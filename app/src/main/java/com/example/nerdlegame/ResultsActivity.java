@@ -30,7 +30,7 @@ public class ResultsActivity extends AppCompatActivity {
         AppDatabase db = AppDatabase.getInstance(this);
         List<Result> results = db.resultDao().getAllResults();
 
-        System.out.println("✅ Results found: " + results.size());
+        System.out.println(" Results found: " + results.size());
 
         ResultAdapter adapter = new ResultAdapter(results);
         recyclerView.setAdapter(adapter);

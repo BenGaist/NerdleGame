@@ -20,13 +20,13 @@ public class GameManager {
     private boolean isEquationReady = false;
 
 
-    // ✅ Callback interface for async Gemini result
+    //  Callback interface for async Gemini result
     public interface EquationCallback {
         void onEquationGenerated(String equation, String message, boolean isSuccess);
         // onError is removed as we handle everything through onEquationGenerated with status
     }
 
-    // ✅ Constructor
+    //  Constructor
     public GameManager() {
         String apiKey = BuildConfig.GOOGLE_API_KEY;
 
@@ -39,7 +39,7 @@ public class GameManager {
         client = Client.builder().apiKey(apiKey).build();
     }
 
-    // ✅ Generate equation with Gemini and store it in 'solution'
+    //  Generate equation with Gemini and store it in 'solution'
     public void generateEquationGemini(final EquationCallback callback) {
         // Try user-specified model first, if fails, try pro
         generateEquationWithModel("gemini-2.5-flash", callback, true);
@@ -51,7 +51,8 @@ public class GameManager {
                         "like in the game Nerdle. " +
                         "Use only digits (0–9) and the symbols + - * / =. " +
                         "The equation must be mathematically correct and balanced. " +
-                        "Example format: 91-34=67 or 56/8+1=8 or 12+34=46. " +
+                        "Do NOT use numbers with leading zeros (e.g. 01, 02, 00 are forbidden). " +
+                        "Valid examples: 91-34=57, 56/8+1=8, 12+34=46. " +
                         "Return only the equation, with no extra words.";
 
         new Thread(() -> {
@@ -107,11 +108,18 @@ public class GameManager {
     }
 
     private boolean isValidSolution(String eq) {
-        if (eq == null || eq.length() != 8) return false;
-        // Check regex for allowed chars
-        if (!eq.matches("[0-9+\\-*/=]+")) return false;
-        return isValidEquation(eq);
-    }
+            if (eq == null || eq.length() != 8) return false;
+
+            // Allowed characters
+            if (!eq.matches("[0-9+\\-*/=]+")) return false;
+
+            //  Reject numbers with leading zeros
+            if (hasLeadingZeroNumber(eq)) return false;
+
+            return isValidEquation(eq);
+        }
+
+
 
     private String getRandomFallback() {
         String[] fallbacks = {
@@ -124,7 +132,7 @@ public class GameManager {
         return fallbacks[idx];
     }
 
-    // ✅ Game logic
+    //  Game logic
     public String getSolution() {
         return solution;
     }
@@ -147,8 +155,8 @@ public class GameManager {
         }
     }
 
-    // ✅ Validate equation correctness
-    // ✅ Flexible equation validator using expression parsing
+    //  Validate equation correctness
+    //  Flexible equation validator using expression parsing
     public boolean isValidEquation(String equation) {
         if (equation == null || !equation.contains("=")) return false;
 
@@ -168,8 +176,8 @@ public class GameManager {
     }
 
 
-    // ✅ Evaluate the left side of an equation
-    // ✅ Evaluate a full mathematical expression safely
+    //  Evaluate the left side of an equation
+    //  Evaluate a full mathematical expression safely
     private double evaluateExpression(String expr) throws Exception {
         expr = expr.replaceAll("\\s+", ""); // remove spaces
         if (expr.isEmpty()) throw new Exception("Empty expression");
@@ -256,5 +264,18 @@ public class GameManager {
         if (op == '*' || op == '/') return 2;
         return 0;
     }
+
+    private boolean hasLeadingZeroNumber(String expr) {
+        // Split by operators
+        String[] parts = expr.split("[+\\-*/=]");
+
+        for (String part : parts) {
+            if (part.length() > 1 && part.startsWith("0")) {
+                return true; // leading zero found
+            }
+        }
+        return false;
+    }
+
 }
 
