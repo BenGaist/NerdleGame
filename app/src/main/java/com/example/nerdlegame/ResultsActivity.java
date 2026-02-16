@@ -2,54 +2,56 @@ package com.example.nerdlegame;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
+import java.util.List;
+
+/**
+ * Activity for displaying the leaderboard/history of game results.
+ * Retrieves data from the local database and displays it in a RecyclerView.
+ */
 public class ResultsActivity extends AppCompatActivity {
 
-    String username;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_results);
 
-        username = getIntent().getStringExtra("USERNAME");
+        RecyclerView rvResults = findViewById(R.id.rvResults);
+        rvResults.setLayoutManager(new LinearLayoutManager(this));
 
-        RecyclerView recyclerView = findViewById(R.id.recyclerResults);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
+        // Load results from DB on main thread (simple approach for this project)
         AppDatabase db = AppDatabase.getInstance(this);
         List<Result> results = db.resultDao().getAllResults();
 
-        System.out.println(" Results found: " + results.size());
-
         ResultAdapter adapter = new ResultAdapter(results);
-        recyclerView.setAdapter(adapter);
+        rvResults.setAdapter(adapter);
 
         Button btnMenu = findViewById(R.id.btnMenu);
-        Button btnGame = findViewById(R.id.btnGame);
+        Button btnPlayAgain = findViewById(R.id.btnPlayAgain);
+
+        // Get username if passed (to keep it for next game)
+        String username = getIntent().getStringExtra("USERNAME");
 
         btnMenu.setOnClickListener(v -> {
-            Intent intent = new Intent(ResultsActivity.this, MainActivity.class);
+            Intent intent = new Intent(this, MainActivity.class);
+            // Clear back stack so we don't pile up activities
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
-            finish(); // optional: close ResultsActivity
+            finish();
         });
 
-        btnGame.setOnClickListener(v -> {
-            Intent intent = new Intent(ResultsActivity.this, GameActivity.class);
-            intent.putExtra("USERNAME", username);
+        btnPlayAgain.setOnClickListener(v -> {
+            Intent intent = new Intent(this, GameActivity.class);
+            if (username != null) {
+                intent.putExtra("USERNAME", username);
+            }
             startActivity(intent);
-            finish(); // optional
+            finish();
         });
     }
-
 }

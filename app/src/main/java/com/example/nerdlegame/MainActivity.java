@@ -8,22 +8,53 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.widget.Button;
 import android.widget.EditText;
 
+/**
+ * Main entry point for the NerdleGame application.
+ * Handles user login, settings, game start, and background music management.
+ */
 public class MainActivity extends AppCompatActivity {
 
-    EditText etUsername;
-    Button btnStart, btnSettings, btnRules;
+    private EditText etUsername;
+    private Button btnStart, btnSettings, btnRules;
 
-    SharedPreferences sharedPreferences;
+    private SharedPreferences sharedPreferences;
     public static final String PREFS_NAME = "NerdlePrefs";
     public static final String KEY_USERNAME = "username";
     private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
+
+    // Music Service Binding
+    private MusicService musicService;
+    private boolean isBound = false;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+            musicService = binder.getService();
+            isBound = true;
+
+            // Check preferences and start music if enabled
+            if (sharedPreferences != null && sharedPreferences.getBoolean("music_on", true)) {
+                musicService.resumeMusic();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBound = false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +86,10 @@ public class MainActivity extends AppCompatActivity {
         String savedUsername = sharedPreferences.getString(KEY_USERNAME, "");
         etUsername.setText(savedUsername);
 
-        // Auto-start music only if ON
-        boolean isMusicOn = sharedPreferences.getBoolean("music_on", true);
-        if (isMusicOn) {
-            startService(new Intent(this, MusicService.class));
-        }
+        // Bind to MusicService (Auto-create but don't auto-start playback)
+        Intent intent = new Intent(this, MusicService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
 
         btnStart.setOnClickListener(v -> {
             SharedPreferences prefs = getSharedPreferences("NerdlePrefs", MODE_PRIVATE);
@@ -77,9 +107,9 @@ public class MainActivity extends AppCompatActivity {
             editor.apply();
 
             // Send to GameActivity
-            Intent intent = new Intent(MainActivity.this, GameActivity.class);
-            intent.putExtra("USERNAME", username);
-            startActivity(intent);
+            Intent gameIntent = new Intent(MainActivity.this, GameActivity.class);
+            gameIntent.putExtra("USERNAME", username);
+            startActivity(gameIntent);
         });
 
         btnSettings.setOnClickListener(v -> {
@@ -87,13 +117,25 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnRules.setOnClickListener(v -> {
-            stopService(new Intent(this, MusicService.class));
+            // Pause background music before showing rules
+            if (isBound && musicService != null) {
+                musicService.pauseMusic();
+            }
 
             RulesDialogFragment dialog = new RulesDialogFragment();
             dialog.show(getSupportFragmentManager(), "RulesDialog");
         });
+    }
 
-
+    /**
+     * Called by RulesDialogFragment when it is dismissed.
+     * Resumes the background music if it's enabled in settings.
+     */
+    public void onRulesDismissed() {
+        boolean isMusicOn = sharedPreferences.getBoolean("music_on", true);
+        if (isMusicOn && isBound && musicService != null) {
+            musicService.resumeMusic();
+        }
     }
 
     private void showSettingsDialog() {
@@ -111,12 +153,16 @@ public class MainActivity extends AppCompatActivity {
                 // Music ON
                 editor.putBoolean("music_on", true);
                 editor.apply();
-                startService(new Intent(this, MusicService.class));
+                if (isBound && musicService != null) {
+                    musicService.resumeMusic();
+                }
             } else {
                 // Music OFF
                 editor.putBoolean("music_on", false);
                 editor.apply();
-                stopService(new Intent(this, MusicService.class));
+                if (isBound && musicService != null) {
+                    musicService.pauseMusic();
+                }
             }
         });
 
@@ -160,37 +206,12 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-
-    private void showRulesDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("How to Play Nerdle");
-
-        // Put the rules text into a scrollable TextView
-        final android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
-        final android.widget.TextView textView = new android.widget.TextView(this);
-
-        textView.setText(getString(R.string.rules_text));
-        textView.setPadding(40, 30, 40, 30);
-        textView.setTextSize(16f);
-
-        scrollView.addView(textView);
-        builder.setView(scrollView);
-
-        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        builder.show();
-    }
-
-
-
-
-
-
-
-
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopService(new Intent(this, MusicService.class));
+        if (isBound) {
+            unbindService(serviceConnection);
+            isBound = false;
+        }
     }
 }

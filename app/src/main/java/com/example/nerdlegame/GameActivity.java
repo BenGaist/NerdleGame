@@ -83,30 +83,27 @@ public class GameActivity extends AppCompatActivity {
 
         // --- Generate equation using Gemini ---
         // --- Generate equation using Gemini ---
-        gameManager.generateEquationGemini(new GameManager.EquationCallback() {
-            @Override
-            public void onEquationGenerated(String equation, String message, boolean isSuccess) {
-                runOnUiThread(() -> {
-                    isEquationReady = true;
-                    
-                    // Show detailed status to user
-                    showTopToast(message);
+        gameManager.generateEquationGemini((equation, message, isSuccess) -> {
+            runOnUiThread(() -> {
+                isEquationReady = true;
 
-                    // Hide loader, show Start
-                    loadingContainer.setVisibility(View.GONE);
-                    tvStart.setVisibility(View.VISIBLE);
+                // Show detailed status to user
+                showTopToast(message);
 
-                    // Hide Start after 5 seconds
-                    new Handler().postDelayed(() -> {
-                        tvStart.setVisibility(View.GONE);
-                    }, 5000);
+                // Hide loader, show Start
+                loadingContainer.setVisibility(View.GONE);
+                tvStart.setVisibility(View.VISIBLE);
 
-                    // Now we can safely start the game
-                    setupKeyboard();
-                    setKeyboardEnabled(true);
-                    startTimer();
-                });
-            }
+                // Hide Start after 5 seconds
+                new Handler().postDelayed(() -> {
+                    tvStart.setVisibility(View.GONE);
+                }, 5000);
+
+                // Now we can safely start the game
+                setupKeyboard();
+                setKeyboardEnabled(true);
+                startTimer();
+            });
         });
 
         // --- Menu buttons ---
@@ -240,67 +237,14 @@ public class GameActivity extends AppCompatActivity {
 
     // ---------------- CHECK GUESS ----------------
     private void checkGuess(String guess) {
+        GuessResult result = gameManager.checkGuess(guess);
+        int[] guessColors = result.getColors();
         String solution = gameManager.getSolution();
-        int[] solutionCharCounts = new int[256]; // Frequency map for solution chars
-        int[] guessColors = new int[8]; // Store colors locally first: 0=Gray, 1=Green, 2=Yellow
-
-        // Initialize colors to Gray.
-        // 0 -> Gray
-        // 1 -> Green
-        // 2 -> Yellow
-
-        // Pass 1: Identify Greens and count available solution characters
-        // First, count all chars in solution
-        for (char c : solution.toCharArray()) {
-            solutionCharCounts[c]++;
-        }
-
-        // Now find Greens and decrement counts from solution for those matches
-        for (int i = 0; i < 8; i++) {
-            char g = guess.charAt(i);
-            char s = solution.charAt(i);
-
-            if (g == s) {
-                guessColors[i] = 1; // Green
-                solutionCharCounts[g]--;
-            }
-        }
-
-        // Pass 2: Identify Yellows
-        for (int i = 0; i < 8; i++) {
-            if (guessColors[i] == 1) continue; // Skip already green
-
-            char g = guess.charAt(i);
-            if (solutionCharCounts[g] > 0) {
-                guessColors[i] = 2; // Yellow
-                solutionCharCounts[g]--;
-            } else {
-                guessColors[i] = 0; // Gray
-            }
-        }
 
         // Apply colors to UI
-        for (int i = 0; i < 8; i++) {
-            char g = guess.charAt(i);
-            int tileColor;
-            int keyColor;
+        applyColorsToBoard(guess, guessColors);
 
-            if (guessColors[i] == 1) {
-                tileColor = green;
-                keyColor = green;
-            } else if (guessColors[i] == 2) {
-                tileColor = yellow;
-                keyColor = yellow;
-            } else {
-                tileColor = gray;
-                keyColor = darkGray;
-            }
-
-            cells[currentRow][i].setBackgroundColor(tileColor);
-            updateKeyboardKey(g, keyColor);
-        }
-
-        if (guess.equals(solution)) {
+        if (result.isWin()) {
             playWinAnimation(solution); //  play animation first
             return;
         }
@@ -314,12 +258,31 @@ public class GameActivity extends AppCompatActivity {
         currentGuess.setLength(0);
     }
 
+
+    private void applyColorsToBoard(String guess, int[] guessColors) {
+        for (int i = 0; i < 8; i++) {
+            char g = guess.charAt(i);
+            int tileColor;
+            int keyColor;
+
+            if (guessColors[i] == 1) { // Green
+                tileColor = green;
+                keyColor = green;
+            } else if (guessColors[i] == 2) { // Yellow
+                tileColor = yellow;
+                keyColor = yellow;
+            } else { // Gray
+                tileColor = gray;
+                keyColor = darkGray;
+            }
+
+            cells[currentRow][i].setBackgroundColor(tileColor);
+            updateKeyboardKey(g, keyColor);
+        }
+    }
+
     private void updateKeyboardKey(char key, int color) {
-        // Determine priority of incoming color
-        // 3: Green
-        // 2: Yellow
-        // 1: DarkGray/Gray (Miss)
-        // 0: None
+        // Determine priority of incoming color: 3=Green, 2=Yellow, 1=DarkGray
         int priority = 0;
         if (color == green) priority = 3;
         else if (color == yellow) priority = 2;
@@ -332,31 +295,19 @@ public class GameActivity extends AppCompatActivity {
             if (child instanceof Button) {
                 Button btn = (Button) child;
                 if (btn.getText().toString().equals(String.valueOf(key))) {
-                    
+
                     int currentPriority = 0;
                     if (btn.getTag() != null && btn.getTag() instanceof Integer) {
                         currentPriority = (Integer) btn.getTag();
                     }
 
-                    // Only update if new priority is higher (e.g. don't overwrite Green with Yellow)
+                    // Only update if new priority is higher
                     if (priority > currentPriority) {
                         btn.setBackgroundColor(color);
                         btn.setTag(priority);
-                        
+
                         if (color == darkGray) {
                             btn.setTextColor(Color.BLACK);
-                        } else {
-                             // Reset text color to default (usually white) for Green/Yellow if needed, 
-                             // but since we only upgrade, we might not need to revert from Black.
-                             // However, if we went from Gray -> Yellow (logic forbids, but say restart), 
-                             // we should be careful. But here we just persist forward.
-                             // Let's assume default text color handles fine for G/Y.
-                             // Actually, if a key was Gray (Black text) and becomes Yellow (Upgrade impossible in standard Nerdle but let's be safe),
-                             // we should probably reset text color. 
-                             // But wait, if logic is correct, a char can't go from Gray(NotInWord) to Yellow(InWord).
-                             // So Gray is terminal unless we restart game. 
-                             // Restarting game recreates Activity or resets board? 
-                             // `recreate()` is called in `showResultPopup`. This reloads everything so state is cleared.
                         }
                     }
                 }
@@ -420,35 +371,31 @@ public class GameActivity extends AppCompatActivity {
         Button btnPlayAgain = popupView.findViewById(R.id.btnPlayAgain);
 
         // Thread for auto-dismiss
-        Thread autoDismissThread = new Thread(() -> {
-            try {
-                Thread.sleep(10_000); // wait 10 seconds
-                if (dialog.isShowing()) {
-                    runOnUiThread(() -> {
-                        dialog.dismiss();
-                        Intent intent = new Intent(this, ResultsActivity.class);
-                        intent.putExtra("USERNAME", username);
-                        startActivity(intent);
-                    });
-                }
-            } catch (InterruptedException e) {
-                // Thread was interrupted (user clicked button), do nothing
+        Handler dismissHandler = new Handler();
+        Runnable dismissRunnable = () -> {
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+                Intent intent = new Intent(this, ResultsActivity.class);
+                intent.putExtra("USERNAME", username);
+                startActivity(intent);
+                finish();
             }
-        });
-        autoDismissThread.start();
+        };
+        dismissHandler.postDelayed(dismissRunnable, 10000); // 10 seconds
 
         btnQuit.setOnClickListener(v -> {
-            autoDismissThread.interrupt(); // stop the thread
+            dismissHandler.removeCallbacks(dismissRunnable); // stop the auto-dismiss
             dialog.dismiss();
             Intent intent = new Intent(this, ResultsActivity.class);
             intent.putExtra("USERNAME", username);
             startActivity(intent);
+            finish();
         });
 
         btnPlayAgain.setOnClickListener(v -> {
-            autoDismissThread.interrupt(); // stop the thread
+            dismissHandler.removeCallbacks(dismissRunnable); // stop the auto-dismiss
             dialog.dismiss();
-            recreate();
+            resetGame();
         });
 
         dialog.show();
@@ -529,5 +476,62 @@ public class GameActivity extends AppCompatActivity {
         
         hideToastRunnable = () -> tvTopToast.setVisibility(View.GONE);
         tvTopToast.postDelayed(hideToastRunnable, 3500); // Show for 3.5 seconds
+    }
+
+    /**
+     * Resets the game state and UI for a new round without recreating the Activity.
+     */
+    private void resetGame() {
+        // Reset Logic
+        currentRow = 0;
+        currentGuess.setLength(0);
+        gameManager.reset();
+        isEquationReady = false;
+        secondsElapsed = 0;
+        updateTimerText();
+
+        // Reset Board UI
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 8; c++) {
+                cells[r][c].setText("");
+                cells[r][c].setBackgroundResource(R.drawable.cell_background);
+                cells[r][c].setRotation(0);
+            }
+        }
+
+        // Reset Keyboard UI
+        GridLayout keyboard = findViewById(R.id.keyboard);
+        for (int i = 0; i < keyboard.getChildCount(); i++) {
+            View child = keyboard.getChildAt(i);
+            if (child instanceof Button) {
+                Button btn = (Button) child;
+                btn.setBackgroundColor(ContextCompat.getColor(this, R.color.purple_500)); // Reset to default color
+                btn.setTag(null); // Reset priority tag
+                if (btn.getText().equals("Enter") || btn.getText().equals("⌫")) {
+                    btn.setBackgroundColor(ContextCompat.getColor(this, R.color.teal_200));
+                }
+                btn.setTextColor(Color.WHITE);
+            }
+        }
+
+        // Start new game flow
+        loadingContainer.setVisibility(View.VISIBLE);
+        tvStart.setVisibility(View.GONE);
+        setKeyboardEnabled(false);
+        showTopToast("Generating new puzzle...");
+
+        gameManager.generateEquationGemini((equation, message, isSuccess) -> {
+            runOnUiThread(() -> {
+                isEquationReady = true;
+                showTopToast(message);
+                loadingContainer.setVisibility(View.GONE);
+                tvStart.setVisibility(View.VISIBLE);
+
+                new Handler().postDelayed(() -> tvStart.setVisibility(View.GONE), 2000);
+
+                setKeyboardEnabled(true);
+                startTimer();
+            });
+        });
     }
 }

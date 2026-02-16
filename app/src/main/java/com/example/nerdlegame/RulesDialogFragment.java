@@ -2,7 +2,7 @@ package com.example.nerdlegame;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.Intent;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -15,6 +15,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
+/**
+ * A DialogFragment that displays the game rules.
+ * Handles playing specific "Rules" music while open and notifying the parent Activity on dismissal.
+ */
 public class RulesDialogFragment extends DialogFragment {
 
     private MediaPlayer rulesMusicPlayer;
@@ -28,6 +32,10 @@ public class RulesDialogFragment extends DialogFragment {
 
         Button btnClose = view.findViewById(R.id.btnClose);
         btnClose.setOnClickListener(v -> dismiss());
+
+        // Set HTML text for rules
+        android.widget.TextView rulesText = view.findViewById(R.id.rulesText);
+        rulesText.setText(android.text.Html.fromHtml(getString(R.string.rules_text), android.text.Html.FROM_HTML_MODE_LEGACY));
 
         // Build the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(requireActivity());
@@ -48,8 +56,10 @@ public class RulesDialogFragment extends DialogFragment {
         if (isMusicOn) {
             // Start playing rules music when dialog is shown
             rulesMusicPlayer = MediaPlayer.create(getContext(), R.raw.rulesmusic);
-            rulesMusicPlayer.setLooping(true);
-            rulesMusicPlayer.start();
+            if (rulesMusicPlayer != null) {
+                rulesMusicPlayer.setLooping(true);
+                rulesMusicPlayer.start();
+            }
         }
     }
 
@@ -63,15 +73,14 @@ public class RulesDialogFragment extends DialogFragment {
             rulesMusicPlayer.release();
             rulesMusicPlayer = null;
         }
+    }
 
-        // Restart main background music if music is ON
-        SharedPreferences prefs = requireActivity()
-                .getSharedPreferences("NerdlePrefs", Context.MODE_PRIVATE);
-        boolean isMusicOn = prefs.getBoolean("music_on", true);
-
-        if (isMusicOn) {
-            Intent serviceIntent = new Intent(requireContext(), MusicService.class);
-            requireActivity().startService(serviceIntent);
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
+        // Notify MainActivity to resume background music
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).onRulesDismissed();
         }
     }
 }

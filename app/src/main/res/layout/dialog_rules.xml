@@ -13,24 +13,26 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="8dp">
 
             <TextView
                 android:id="@+id/rulesTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="How to Play Nerdle"
-                android:textSize="20sp"
+                android:text="How to Play"
+                android:textSize="24sp"
                 android:textStyle="bold"
+                android:textColor="@color/purple_500"
                 android:gravity="center"
-                android:paddingBottom="12dp"/>
+                android:paddingBottom="16dp"/>
 
             <TextView
                 android:id="@+id/rulesText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
-                android:lineSpacingExtra="4dp"
+                android:lineSpacingExtra="6dp"
                 android:textColor="@android:color/black"
                 android:text="@string/rules_text"/>
         </LinearLayout>

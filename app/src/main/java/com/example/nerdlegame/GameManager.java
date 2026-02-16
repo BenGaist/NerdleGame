@@ -1,135 +1,45 @@
 package com.example.nerdlegame;
 
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
-
-import com.google.genai.Client;
-import com.google.genai.types.GenerateContentResponse;
-
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Manages the core game logic, including equation generation (via helper),
+ * maintaining the list of attempts, and validating guesses.
+ */
 public class GameManager {
 
     private static final String TAG = "GameManager";
-    private final Client client;
+    private final GeminiEquationGenerator equationGenerator;
     private String solution;
     private final int maxAttempts = 6;
     private final List<String> attempts = new ArrayList<>();
-    private boolean isEquationReady = false;
-
-
-    //  Callback interface for async Gemini result
-    public interface EquationCallback {
-        void onEquationGenerated(String equation, String message, boolean isSuccess);
-        // onError is removed as we handle everything through onEquationGenerated with status
-    }
 
     //  Constructor
     public GameManager() {
-        String apiKey = BuildConfig.GOOGLE_API_KEY;
-
-        if (apiKey == null || apiKey.isEmpty()) {
-            Log.w(TAG, "GOOGLE_API_KEY is empty – did you set it in local.properties?");
-        } else {
-            Log.d(TAG, "Loaded GOOGLE_API_KEY (length=" + apiKey.length() + ")");
-        }
-
-        client = Client.builder().apiKey(apiKey).build();
+        equationGenerator = new GeminiEquationGenerator();
     }
 
-    //  Generate equation with Gemini and store it in 'solution'
-    public void generateEquationGemini(final EquationCallback callback) {
-        // Try user-specified model first, if fails, try pro
-        generateEquationWithModel("gemini-2.5-flash", callback, true);
+    /**
+     * Resets the game state for a new game.
+     * Clears attempts and solution.
+     */
+    public void reset() {
+        attempts.clear();
+        solution = null;
     }
 
-    private void generateEquationWithModel(String model, final EquationCallback callback, boolean retryOnFailure) {
-        final String nerdlePrompt =
-                "Generate ONE random valid math equation exactly 8 characters long, " +
-                        "like in the game Nerdle. " +
-                        "Use only digits (0–9) and the symbols + - * / =. " +
-                        "The equation must be mathematically correct and balanced. " +
-                        "Do NOT use numbers with leading zeros (e.g. 01, 02, 00 are forbidden). " +
-                        "Valid examples: 91-34=57, 56/8+1=8, 12+34=46. " +
-                        "Return only the equation, with no extra words.";
-
-        new Thread(() -> {
-            long t0 = System.nanoTime();
-            try {
-                GenerateContentResponse response = client.models.generateContent(
-                        model,
-                        nerdlePrompt,
-                        null
-                );
-
-                String text = response.text().trim();
-                long durMs = (System.nanoTime() - t0) / 1_000_000;
-                Log.d(TAG, "Gemini equation (" + model + "): " + text + " (" + durMs + " ms)");
-
-                // Validate generated equation
-                if (!isValidSolution(text)) {
-                    Log.w(TAG, "Gemini generated invalid equation: " + text + ". Using fallback.");
-                    final String fallback = getRandomFallback();
-                    solution = fallback;
-
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            callback.onEquationGenerated(fallback, "Validation used a different equation (API returned invalid: " + text + ")", false)
-                    );
-                } else {
-                    final String finalSolution = text;
-                    solution = finalSolution;
-
-                    // Return to main thread
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            callback.onEquationGenerated(finalSolution, "Equation generated correctly!", true)
-                    );
-                }
-
-            } catch (final Exception e) {
-                long durMs = (System.nanoTime() - t0) / 1_000_000;
-                Log.e(TAG, "Request failed (" + model + ") after " + durMs + " ms: " + e.getMessage(), e);
-
-                if (retryOnFailure) {
-                    Log.i(TAG, "Retrying with gemini-1.5-pro...");
-                    generateEquationWithModel("gemini-1.5-pro", callback, false);
-                } else {
-                    // Final failure
-                    final String fallback = getRandomFallback();
-                    solution = fallback;
-
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            callback.onEquationGenerated(fallback, "Equation did not generate (API Error: " + e.getMessage() + ")", false)
-                    );
-                }
+    /**
+     * Initiates the generation of a new equation using Gemini.
+     * @param callback Callback to handle the result (success or failure).
+     */
+    public void generateEquationGemini(final GeminiEquationGenerator.EquationCallback callback) {
+        equationGenerator.generateEquation((equation, message, isSuccess) -> {
+            if (isSuccess) {
+                solution = equation;
             }
-        }).start();
-    }
-
-    private boolean isValidSolution(String eq) {
-            if (eq == null || eq.length() != 8) return false;
-
-            // Allowed characters
-            if (!eq.matches("[0-9+\\-*/=]+")) return false;
-
-            //  Reject numbers with leading zeros
-            if (hasLeadingZeroNumber(eq)) return false;
-
-            return isValidEquation(eq);
-        }
-
-
-
-    private String getRandomFallback() {
-        String[] fallbacks = {
-                "10+20=30",
-                "12+34=46",
-                "99-55=44",
-                "50+40=90",
-        };
-        int idx = (int) (Math.random() * fallbacks.length);
-        return fallbacks[idx];
+            callback.onEquationGenerated(equation, message, isSuccess);
+        });
     }
 
     //  Game logic
@@ -158,124 +68,49 @@ public class GameManager {
     //  Validate equation correctness
     //  Flexible equation validator using expression parsing
     public boolean isValidEquation(String equation) {
-        if (equation == null || !equation.contains("=")) return false;
+        return equationGenerator.isValidEquation(equation);
+    }
 
-        String[] parts = equation.split("=");
-        if (parts.length != 2) return false;
-
-        try {
-            double leftValue = evaluateExpression(parts[0]);
-            double rightValue = evaluateExpression(parts[1]);
-
-            // Use small tolerance for floating-point division cases
-            return Math.abs(leftValue - rightValue) < 1e-9;
-        } catch (Exception e) {
-            Log.e(TAG, "Invalid equation: " + equation + " (" + e.getMessage() + ")");
-            return false;
+    public GuessResult checkGuess(String guess) {
+        if (solution == null) {
+            throw new IllegalStateException("Solution not set");
         }
-    }
 
+        int[] solutionCharCounts = new int[256];
+        int[] guessColors = new int[8]; // 0=Gray, 1=Green, 2=Yellow
 
-    //  Evaluate the left side of an equation
-    //  Evaluate a full mathematical expression safely
-    private double evaluateExpression(String expr) throws Exception {
-        expr = expr.replaceAll("\\s+", ""); // remove spaces
-        if (expr.isEmpty()) throw new Exception("Empty expression");
+        // Count solution chars
+        for (char c : solution.toCharArray()) {
+            solutionCharCounts[c]++;
+        }
 
-        // Convert infix (e.g. "2+3*4") to postfix using Shunting Yard algorithm
-        List<String> postfix = infixToPostfix(expr);
-        return evaluatePostfix(postfix);
-    }
+        // Pass 1: Green
+        for (int i = 0; i < 8; i++) {
+            char g = guess.charAt(i);
+            char s = solution.charAt(i);
 
-    // --- Convert infix to postfix (Shunting Yard algorithm)
-    private List<String> infixToPostfix(String expr) throws Exception {
-        List<String> output = new ArrayList<>();
-        java.util.Stack<Character> ops = new java.util.Stack<>();
-        StringBuilder number = new StringBuilder();
+            if (g == s) {
+                guessColors[i] = 1; // Green
+                solutionCharCounts[g]--;
+            }
+        }
 
-        for (int i = 0; i < expr.length(); i++) {
-            char c = expr.charAt(i);
+        // Pass 2: Yellow
+        for (int i = 0; i < 8; i++) {
+            if (guessColors[i] == 1) continue;
 
-            if (Character.isDigit(c)) {
-                number.append(c);
-            } else if ("+-*/".indexOf(c) >= 0) {
-                if (number.length() > 0) {
-                    output.add(number.toString());
-                    number.setLength(0);
-                }
-
-                while (!ops.isEmpty() && precedence(ops.peek()) >= precedence(c)) {
-                    output.add(String.valueOf(ops.pop()));
-                }
-                ops.push(c);
+            char g = guess.charAt(i);
+            if (solutionCharCounts[g] > 0) {
+                guessColors[i] = 2; // Yellow
+                solutionCharCounts[g]--;
             } else {
-                throw new Exception("Invalid char: " + c);
+                guessColors[i] = 0; // Gray
             }
         }
 
-        if (number.length() > 0) {
-            output.add(number.toString());
-        }
-        while (!ops.isEmpty()) {
-            output.add(String.valueOf(ops.pop()));
-        }
-
-        return output;
+        boolean isWin = guess.equals(solution);
+        return new GuessResult(guessColors, isWin);
     }
-
-    // --- Evaluate postfix expression
-    private double evaluatePostfix(List<String> postfix) throws Exception {
-        java.util.Stack<Double> stack = new java.util.Stack<>();
-
-        for (String token : postfix) {
-            if (token.matches("\\d+")) {
-                stack.push(Double.parseDouble(token));
-            } else if (token.length() == 1 && "+-*/".contains(token)) {
-                if (stack.size() < 2) throw new Exception("Bad expression");
-                double b = stack.pop();
-                double a = stack.pop();
-                switch (token.charAt(0)) {
-                    case '+':
-                        stack.push(a + b);
-                        break;
-                    case '-':
-                        stack.push(a - b);
-                        break;
-                    case '*':
-                        stack.push(a * b);
-                        break;
-                    case '/':
-                        if (b == 0) throw new Exception("Division by zero");
-                        stack.push(a / b);
-                        break;
-                }
-            } else {
-                throw new Exception("Invalid token: " + token);
-            }
-        }
-
-        if (stack.size() != 1) throw new Exception("Malformed expression");
-        return stack.pop();
-    }
-
-    // --- Operator precedence
-    private int precedence(char op) {
-        if (op == '+' || op == '-') return 1;
-        if (op == '*' || op == '/') return 2;
-        return 0;
-    }
-
-    private boolean hasLeadingZeroNumber(String expr) {
-        // Split by operators
-        String[] parts = expr.split("[+\\-*/=]");
-
-        for (String part : parts) {
-            if (part.length() > 1 && part.startsWith("0")) {
-                return true; // leading zero found
-            }
-        }
-        return false;
-    }
-
 }
+
 

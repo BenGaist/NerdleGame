@@ -4,40 +4,48 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultViewHolder> {
+/**
+ * Adapter for displaying the list of game results in a RecyclerView.
+ * Binds {@link Result} objects to view holders.
+ */
+public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ViewHolder> {
+    private final List<Result> results;
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
 
-    private List<Result> results;
-
+    /**
+     * Constructor for the ResultAdapter.
+     * @param results The list of Result objects to display.
+     */
     public ResultAdapter(List<Result> results) {
         this.results = results;
     }
 
     @NonNull
     @Override
-    public ResultViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_result, parent, false);
-        return new ResultViewHolder(view);
+        return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ResultViewHolder holder, int position) {
-        Result r = results.get(position);
-        holder.username.setText(r.username);
-        holder.equation.setText(r.equation);
-        holder.time.setText(r.time);
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        Result result = results.get(position);
+        holder.tvUsername.setText(result.username);
+        holder.tvEquation.setText(result.equation);
+        holder.tvTime.setText("Time: " + result.timeFormatted);
 
-        // Format date
-        String dateStr = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                .format(new Date(r.date));
-        holder.date.setText(dateStr);
+        String dateStr = dateFormat.format(new Date(result.timestamp));
+        holder.tvDate.setText(dateStr);
     }
 
     @Override
@@ -45,16 +53,18 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
         return results.size();
     }
 
-    static class ResultViewHolder extends RecyclerView.ViewHolder {
-        TextView username, equation, time, date;
+    /**
+     * ViewHolder class for caching view references.
+     */
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView tvUsername, tvEquation, tvTime, tvDate;
 
-        public ResultViewHolder(@NonNull View itemView) {
+        public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            username = itemView.findViewById(R.id.tvUsername);
-            equation = itemView.findViewById(R.id.tvEquation);
-            time = itemView.findViewById(R.id.tvTime);
-            date = itemView.findViewById(R.id.tvDate);
+            tvUsername = itemView.findViewById(R.id.tvUsername);
+            tvEquation = itemView.findViewById(R.id.tvEquation);
+            tvTime = itemView.findViewById(R.id.tvTime);
+            tvDate = itemView.findViewById(R.id.tvDate);
         }
     }
 }
-

@@ -1,30 +1,23 @@
 <resources>
     <string name="app_name">NerdleGame</string>
-    <string name="rules_text">
-About Nerdle\n
-Nerdle is a daily math puzzle inspired by logic games and a love for numbers. Each day you’ll face a hidden equation to solve in six tries or less.\n\n
+    <string name="rules_text"><![CDATA[
+<b>About Nerdle</b><br/>
+Nerdle is a daily math puzzle. Solve the hidden equation in six tries.<br/><br/>
 
-How to Play\n
-1. Each guess must be a valid calculation.\n
-2. Use numbers (0–9) and the symbols + - * / =.\n
-3. Your guess must include exactly one “=”, with only a number on the right side (e.g., 3+4=7).\n
-4. Standard math order applies (* and / before + and -).\n
-5. Commutative answers are accepted (e.g., 10+20=30 and 20+10=30 both work).\n\n
+<b>How to Play</b><br/>
+1. Each guess must be a valid calculation.<br/>
+2. Use numbers 0–9 and symbols + - * / =.<br/>
+3. Must contain one "=".<br/>
+4. Order matters (3+4=7 is not 4+3=7).<br/><br/>
 
-Feedback Hints\n
-• Green = correct symbol in the correct spot.\n
-• Purple = correct symbol but in the wrong spot.\n
-• Black = not in the solution.\n\n
+<b>Colors</b><br/>
+<font color="#388E3C"><b>GREEN</b></font>: Correct number/symbol in the correct spot.<br/>
+<font color="#FBC02D"><b>YELLOW</b></font>: In the equation, but wrong spot.<br/>
+<font color="#757575"><b>GRAY</b></font>: Not in the equation.<br/><br/>
 
-Tips\n
-• First guesses should use many different numbers and operators to gather information.\n
-• Reposition purple tiles to test new spots.\n
-• Try to place the "=" early to reduce possibilities.\n
-• Use logic and deduction to narrow the solution quickly.\n\n
-
-Goal\n
-Turn all tiles green and solve the Nerdle! Come back tomorrow for a new challenge.
-</string>
+<b>Win</b><br/>
+Turn all tiles green to win!
+]]></string>
 
 
 </resources>
