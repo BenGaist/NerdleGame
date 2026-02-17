@@ -7,15 +7,6 @@
     android:fitsSystemWindows="true">
 
 
-    <!-- Welcome text -->
-
-    <!-- Big Nerdle title -->
-
-    <!-- Username input -->
-
-    <!-- Start Button -->
-
-    <!-- Rules bookmark -->
 
     <TextView
         android:id="@+id/tvWelcome"

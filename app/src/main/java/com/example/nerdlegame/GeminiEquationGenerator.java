@@ -15,6 +15,13 @@ public class GeminiEquationGenerator {
 
     private static final String TAG = "GeminiGenerator";
     private static final String API_KEY = BuildConfig.GOOGLE_API_KEY; // Ensure this is set in local.properties
+    
+    private static final String[] FALLBACK_EQUATIONS = {
+        "10+20=30", "20-5=15", "6*7+1=43", "40/2=20", "2*2*2=8",
+        "9+9-4=14", "100/10=10", "3*5+5=20", "50-25=25", "11*2=22",
+        "4*4+4=20", "30-10=20", "12+12=24", "15*2=30", "7*7=49",
+        "81/9=9", "10-2-3=5", "6+6+6=18", "90/2=45", "12*3=36"
+    };
 
     /**
      * Callback interface for equation generation results.
@@ -37,12 +44,16 @@ public class GeminiEquationGenerator {
             try {
                 Client client = Client.builder().apiKey(API_KEY).build();
 
-                String prompt = "Generate a simple math equation with exactly 8 characters (including the equals sign). " +
-                        "Example: 10+20=30 or 2*4+1=9. " +
+                String prompt = "Generate a UNIQUE and RANDOM math equation with exactly 8 characters (including the equals sign). " +
                         "The equation must be mathematically correct. " +
                         "It must contain ONLY numbers and the symbols + - * / =. " +
-                        "Do NOT use spaces. " +
-                        "Reply with ONLY the equation, nothing else.";
+                        "Examples of valid 8-character equations (DO NOT USE THESE): " +
+                        "10+20=30, 9*6-1=53, 100/4=25, 8*8+1=65, 15-5-2=8. " +
+                        "Constraints: " +
+                        "1. Do NOT use spaces. " +
+                        "2. Do NOT use leading zeros (e.g., '01+02=03' is INVALID). " +
+                        "3. Reply with ONLY the equation, nothing else. " +
+                        "Random Seed: " + System.currentTimeMillis();
 
                 GenerateContentResponse response = client.models.generateContent(model, prompt, null);
                 String equation = response.text().trim();
@@ -56,8 +67,8 @@ public class GeminiEquationGenerator {
                     if (retryOnFailure) {
                         generateEquationWithModel("gemini-1.5-flash", callback, false);
                     } else {
-                        new Handler(Looper.getMainLooper()).post(() ->
-                                callback.onEquationGenerated(null, "AI Error: Invalid Format", false));
+                        Log.e(TAG, "Validation failed on retry. Using fallback.");
+                        useFallback(callback);
                     }
                 }
 
@@ -67,11 +78,18 @@ public class GeminiEquationGenerator {
                     Log.d(TAG, "Retrying with fallback model...");
                     generateEquationWithModel("gemini-1.5-flash", callback, false);
                 } else {
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            callback.onEquationGenerated(null, "Connection Error: " + e.getMessage(), false));
+                    Log.e(TAG, "Exception on retry. Using fallback.");
+                    useFallback(callback);
                 }
             }
         }).start();
+    }
+
+    private void useFallback(final EquationCallback callback) {
+        int index = (int) (Math.random() * FALLBACK_EQUATIONS.length);
+        String equation = FALLBACK_EQUATIONS[index];
+        new Handler(Looper.getMainLooper()).post(() ->
+                callback.onEquationGenerated(equation, "Offline Mode", true));
     }
 
     /**

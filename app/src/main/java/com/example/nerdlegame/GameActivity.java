@@ -505,12 +505,9 @@ public class GameActivity extends AppCompatActivity {
             View child = keyboard.getChildAt(i);
             if (child instanceof Button) {
                 Button btn = (Button) child;
-                btn.setBackgroundColor(ContextCompat.getColor(this, R.color.purple_500)); // Reset to default color
+                btn.setBackgroundColor(ContextCompat.getColor(this, R.color.gray)); // Reset to default gray
                 btn.setTag(null); // Reset priority tag
-                if (btn.getText().equals("Enter") || btn.getText().equals("⌫")) {
-                    btn.setBackgroundColor(ContextCompat.getColor(this, R.color.teal_200));
-                }
-                btn.setTextColor(Color.WHITE);
+                btn.setTextColor(Color.BLACK);
             }
         }
 
