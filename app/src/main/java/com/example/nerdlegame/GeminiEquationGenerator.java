@@ -23,6 +23,14 @@ public class GeminiEquationGenerator {
         "81/9=9", "10-2-3=5", "6+6+6=18", "90/2=45", "12*3=36"
     };
 
+    private boolean isOfflineMode = false;
+    private boolean isDeveloperMode = false;
+
+    public void setModes(boolean offline, boolean dev) {
+        this.isOfflineMode = offline;
+        this.isDeveloperMode = dev;
+    }
+
     /**
      * Callback interface for equation generation results.
      */
@@ -36,6 +44,15 @@ public class GeminiEquationGenerator {
      * @param callback The callback to receive the result.
      */
     public void generateEquation(final EquationCallback callback) {
+        if (isDeveloperMode) {
+            new Handler(Looper.getMainLooper()).post(() -> 
+                callback.onEquationGenerated("12+34=46", "Developer Mode", true));
+            return;
+        }
+        if (isOfflineMode) {
+            useFallback(callback);
+            return;
+        }
         generateEquationWithModel("gemini-2.5-flash", callback, true);
     }
 

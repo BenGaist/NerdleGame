@@ -20,6 +20,10 @@ public class GameManager {
         equationGenerator = new GeminiEquationGenerator();
     }
 
+    public void setModes(boolean isOffline, boolean isDeveloper) {
+        equationGenerator.setModes(isOffline, isDeveloper);
+    }
+
     /**
      * Resets the game state for a new game.
      * Clears attempts and solution.

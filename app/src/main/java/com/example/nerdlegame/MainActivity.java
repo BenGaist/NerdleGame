@@ -141,28 +141,30 @@ public class MainActivity extends AppCompatActivity {
     private void showSettingsDialog() {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         boolean isMusicOn = sharedPreferences.getBoolean("music_on", true);
+        boolean isOfflineMode = sharedPreferences.getBoolean("offline_mode", false);
+        boolean isDeveloperMode = sharedPreferences.getBoolean("developer_mode", false);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Settings");
 
-        String[] options = {"Music On", "Music Off"};
-        int checkedItem = isMusicOn ? 0 : 1;
+        String[] options = {"Music On", "Offline Mode", "Developer Mode"};
+        boolean[] checkedItems = {isMusicOn, isOfflineMode, isDeveloperMode};
 
-        builder.setSingleChoiceItems(options, checkedItem, (dialog, which) -> {
+        builder.setMultiChoiceItems(options, checkedItems, (dialog, which, isChecked) -> {
             if (which == 0) {
-                // Music ON
-                editor.putBoolean("music_on", true);
+                editor.putBoolean("music_on", isChecked);
                 editor.apply();
-                if (isBound && musicService != null) {
-                    musicService.resumeMusic();
+                if (isChecked) {
+                    if (isBound && musicService != null) musicService.resumeMusic();
+                } else {
+                    if (isBound && musicService != null) musicService.pauseMusic();
                 }
-            } else {
-                // Music OFF
-                editor.putBoolean("music_on", false);
+            } else if (which == 1) {
+                editor.putBoolean("offline_mode", isChecked);
                 editor.apply();
-                if (isBound && musicService != null) {
-                    musicService.pauseMusic();
-                }
+            } else if (which == 2) {
+                editor.putBoolean("developer_mode", isChecked);
+                editor.apply();
             }
         });
 

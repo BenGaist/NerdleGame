@@ -251,4 +251,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/tvEasterEgg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Shanigga"
+        android:textSize="80sp"
+        android:textStyle="bold"
+        android:textColor="#4D221B"
+        android:visibility="gone"
+        android:elevation="35dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

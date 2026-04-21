@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.SharedPreferences;
 
 import androidx.core.content.ContextCompat;
 
@@ -41,6 +42,11 @@ public class GameActivity extends AppCompatActivity {
     private GameManager gameManager; //  add this line
     private boolean isEquationReady = false;
 
+    // Easter egg
+    private TextView tvEasterEgg;
+    private final String[] EASTER_EGG_SEQUENCE = {"9", "1", "1", "7", "1", "0", "9"};
+    private int easterEggIndex = 0;
+
 
 
     @Override
@@ -61,6 +67,7 @@ public class GameActivity extends AppCompatActivity {
         loadingContainer = findViewById(R.id.loadingContainer);
         tvStart = findViewById(R.id.tvStart);
         tvTopToast = findViewById(R.id.tvTopToast);
+        tvEasterEgg = findViewById(R.id.tvEasterEgg);
 
         // Start state
         loadingContainer.setVisibility(View.VISIBLE);
@@ -72,6 +79,11 @@ public class GameActivity extends AppCompatActivity {
 
         // --- Create GameManager ---
         gameManager = new GameManager();
+
+        SharedPreferences prefs = getSharedPreferences("NerdlePrefs", MODE_PRIVATE);
+        boolean isOffline = prefs.getBoolean("offline_mode", false);
+        boolean isDeveloper = prefs.getBoolean("developer_mode", false);
+        gameManager.setModes(isOffline, isDeveloper);
 
         // --- Setup board first (but no keyboard yet) ---
         setupBoard();
@@ -213,6 +225,8 @@ public class GameActivity extends AppCompatActivity {
                 currentGuess.append(key);
             }
         }
+        // Easter egg sequence check
+        checkEasterEgg(key);
         updateBoard();
     }
 
@@ -478,6 +492,29 @@ public class GameActivity extends AppCompatActivity {
         tvTopToast.postDelayed(hideToastRunnable, 3500); // Show for 3.5 seconds
     }
 
+    private void checkEasterEgg(String key) {
+        if (key.equals(EASTER_EGG_SEQUENCE[easterEggIndex])) {
+            easterEggIndex++;
+            if (easterEggIndex == EASTER_EGG_SEQUENCE.length) {
+                triggerEasterEgg();
+                easterEggIndex = 0;
+            }
+        } else {
+            // Reset but check if current key matches the start
+            easterEggIndex = key.equals(EASTER_EGG_SEQUENCE[0]) ? 1 : 0;
+        }
+    }
+
+    private void triggerEasterEgg() {
+        tvEasterEgg.setAlpha(1f);
+        tvEasterEgg.setVisibility(View.VISIBLE);
+        tvEasterEgg.animate()
+                .alpha(0f)
+                .setDuration(15000) // 15 seconds fade
+                .withEndAction(() -> tvEasterEgg.setVisibility(View.GONE))
+                .start();
+    }
+
     /**
      * Resets the game state and UI for a new round without recreating the Activity.
      */
@@ -487,8 +524,14 @@ public class GameActivity extends AppCompatActivity {
         currentGuess.setLength(0);
         gameManager.reset();
         isEquationReady = false;
+        easterEggIndex = 0;
         secondsElapsed = 0;
         updateTimerText();
+
+        SharedPreferences prefs = getSharedPreferences("NerdlePrefs", MODE_PRIVATE);
+        boolean isOffline = prefs.getBoolean("offline_mode", false);
+        boolean isDeveloper = prefs.getBoolean("developer_mode", false);
+        gameManager.setModes(isOffline, isDeveloper);
 
         // Reset Board UI
         for (int r = 0; r < 6; r++) {
