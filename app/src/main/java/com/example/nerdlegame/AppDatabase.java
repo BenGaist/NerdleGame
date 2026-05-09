@@ -28,7 +28,6 @@ public abstract class AppDatabase extends RoomDatabase {
                             AppDatabase.class, "nerdle_database")
                     .fallbackToDestructiveMigration()
                     // Allowing main thread queries for simplicity in this project.
-                    // In a production app, use background threads/coroutines.
                     .allowMainThreadQueries()
                     .build();
         }
